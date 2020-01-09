@@ -45,7 +45,7 @@ class FullGrad():
         raw_output = self.model(input)
 
         # Compute full-gradients and add them up
-        input_grad, bias_grad = self.fullGradientDecompose(input, target_class=None)
+        input_grad, bias_grad, _ = self.fullGradientDecompose(input, target_class=None)
 
         fullgradient_sum = (input_grad * input).sum()
         for i in range(len(bias_grad)):
@@ -85,7 +85,7 @@ class FullGrad():
         for i in range(1, len(gradients)):
             bias_gradient.append(gradients[i] * self.blockwise_biases[i]) 
         
-        return input_gradient, bias_gradient
+        return input_gradient, bias_gradient, out
 
     def _postProcess(self, input):
         # Absolute value
@@ -100,7 +100,7 @@ class FullGrad():
         #FullGrad saliency
         
         self.model.eval()
-        input_grad, bias_grad = self.fullGradientDecompose(image, target_class=target_class)
+        input_grad, bias_grad, out = self.fullGradientDecompose(image, target_class=target_class)
         
         # Input-gradient * image
         grd = input_grad[0] * image
@@ -120,5 +120,5 @@ class FullGrad():
                     gradient = F.interpolate(temp, size=(im_size[2], im_size[3]), mode = 'bilinear', align_corners=False) 
                 cam += gradient.sum(1, keepdim=True)
 
-        return cam
+        return cam, out
         
