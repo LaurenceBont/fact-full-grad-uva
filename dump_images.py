@@ -55,7 +55,7 @@ def compute_saliency_and_save():
         data, target = data.to(device).requires_grad_(), target.to(device)
 
         # Compute saliency maps for the input data
-        cam = fullgrad.saliency(data)
+        cam, _ = fullgrad.saliency(data)
         cam_simple = simple_fullgrad.saliency(data)
 
         # Save saliency maps
