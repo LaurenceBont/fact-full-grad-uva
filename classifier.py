@@ -32,7 +32,7 @@ def load_data(batch_size, data_set='train'):
             transforms.ToTensor(),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
         ])
-        trainset = datasets.CIFAR100(root='./data', train=True, download=True, transform=transform_train)
+        trainset = datasets.CIFAR100(root=dataset, train=True, download=True, transform=transform_train)
         trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=2)
         return trainloader
     elif data_set == 'test':
@@ -40,7 +40,7 @@ def load_data(batch_size, data_set='train'):
             transforms.ToTensor(),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
         ])
-        testset = datasets.CIFAR100(root='./data', train=False, download=True, transform=transform_test)
+        testset = datasets.CIFAR100(root=dataset, train=False, download=True, transform=transform_test)
         testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=2)
         return testloader
     else:
@@ -87,11 +87,12 @@ def test(dataloader, model, criterion):
 
             print(batch_idx, len(dataloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                 % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
+    return correct/total
 
 
 if __name__ == "__main__":
     model = vgg11(pretrained=False, num_classes=100).to(device)
-    lr = 0.001
+    lr = 0.1
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
@@ -99,12 +100,11 @@ if __name__ == "__main__":
     trainloader = load_data(425, data_set='train')
     testloader = load_data(1000, data_set='test')
 
-    epochs = 15
-    for epoch in range(0, epochs):
-        print("epoch: ", epoch)
+    while True:
         train(trainloader, model, optimizer, criterion)
         torch.cuda.empty_cache()
-        test(testloader, model, criterion)
+        if test(testloader, model, criterion) > 0.60:
+            break
         
 
 
