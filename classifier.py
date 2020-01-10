@@ -18,7 +18,7 @@ from misc_functions import *
 
 # PATH variables
 PATH = os.path.dirname(os.path.abspath(__file__)) + '/'
-dataset = PATH + 'dataset/'
+dataset = PATH + 'dataset/imagenet'
 
 batch_size = 4
 
@@ -26,8 +26,10 @@ cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
 
 # Dataset loader for sample images
+image_net = torchvision.datasets.ImageNet(dataset, split='val')
+
 sample_loader = torch.utils.data.DataLoader(
-    datasets.ImageFolder(dataset, transform=transforms.Compose([
+    datasets.ImageNet(image_net, transform=transforms.Compose([
                        transforms.Resize((224,224)),
                        transforms.ToTensor(),
                        transforms.Normalize(mean = [0.485, 0.456, 0.406],
@@ -49,43 +51,47 @@ simple_fullgrad = SimpleFullGrad(model)
 
 save_path = PATH + 'results/'
 
-def compute_saliency_and_save():
-    for batch_idx, (data, target) in enumerate(sample_loader):
-        data, target = data.to(device).requires_grad_(), target.to(device)
+def compute_saliency_and_save(data):
+    # Compute saliency maps for the input data
+    cam, _ = fullgrad.saliency(data)
+    cam_simple = simple_fullgrad.saliency(data)
 
-        # Compute saliency maps for the input data
-        cam, _ = fullgrad.saliency(data)
-        cam_simple = simple_fullgrad.saliency(data)
+    # Save saliency maps
+    for i in range(data.size(0)):
+        filename = save_path + str( (batch_idx+1) * (i+1)) 
+        filename_simple = filename + '_simple'
 
-        # Save saliency maps
-        for i in range(data.size(0)):
-            filename = save_path + str( (batch_idx+1) * (i+1)) 
-            filename_simple = filename + '_simple'
+        image = unnormalize(data[i,:,:,:].cpu())
+        save_saliency_map(image, cam[i,:,:,:], filename + '.jpg')
+        save_saliency_map(image, cam_simple[i,:,:,:], filename_simple + '.jpg')
 
-            image = unnormalize(data[i,:,:,:].cpu())
-            save_saliency_map(image, cam[i,:,:,:], filename + '.jpg')
-            save_saliency_map(image, cam_simple[i,:,:,:], filename_simple + '.jpg')
-
+def calculate_accuracy(target, predictions):
+    predicted = torch.max(predictions, 1)[1]
+    accuracy = (predicted == target).sum().item()/ target.size(0)
+    return accuracy
 
 if __name__ == "__main__":
     # Create folder to saliency maps
     create_folder(save_path)
-    
-    # loss = nn.BCELoss()
 
+    total = 0
+    correct = 0
     for batch_idx, (data, target) in enumerate(sample_loader):
         data, target = data.to(device).requires_grad_(), target.to(device)
-
         predictions = model(data)
 
         predicted = torch.max(predictions, 1)[1]
-        # targets = torch.max(targets, 1)[1]
-        accuracy = (predicted == target).sum().item()/ target.size(0)
+        
+        correct +=( predicted == target).sum().item()
+        total += target.size(0)
 
-        print(target, predicted)
+        if should_save_saliency_map:
+            compute_saliency_and_save(data)
 
-        print(predictions.shape, accuracy)
-
+        if batch_idx == number_batch:
+            break
+    
+    accuracy = correct / total
 
 
     compute_saliency_and_save()
