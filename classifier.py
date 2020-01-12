@@ -40,10 +40,11 @@ def load_data(batch_size, data_dir, data_set='train'):
 def parse_epoch(dataloader, model, optimizer, criterion, device, train=True):
     if train:
         model.train()
+        print('training mode')
     else:
         model.eval()
 
-    loss, total, correct = 0, 0, 0
+    losses, total, correct = 0, 0, 0
     for batch_idx, (data, target) in enumerate(dataloader):
         data, target = data.to(device), target.to(device)
         if train:
@@ -52,20 +53,75 @@ def parse_epoch(dataloader, model, optimizer, criterion, device, train=True):
             loss = criterion.forward(outputs, target)
             loss.backward()
             optimizer.step()
+            print('update step')
+
+            losses += loss.item()
+            _, predicted = outputs.max(1)
+            total += target.size(0)
+            correct += predicted.eq(target).sum().item()
+
+            print('batch: %d | Loss: %.3f | Acc: %.3f' % (batch_idx, losses/(batch_idx+1), 100.*correct/total))
         else: 
-            with torch._no_grad():
+            with torch.no_grad():
                 outputs = model(data)
                 loss = criterion.forward(outputs, target)
+                
+                losses += loss.item()
+                _, predicted = outputs.max(1)
+                total += target.size(0)
+                correct += predicted.eq(target).sum().item()
 
-        loss += loss.item()
-        _, predicted = outputs.max(1)
-        total += target.size(0)
-        correct += predicted.eq(target).sum().item()
-
-        print('batch: %d | Loss: %.3f | Acc: %.3f' % batch_idx, (loss/(batch_idx+1), 100.*correct/total))
+                print('batch: %d | Loss: %.3f | Acc: %.3f' % (batch_idx, losses/(batch_idx+1), 100.*correct/total))
     return correct/total
 
-def train(config):
+def train(model, criterion, optimizer, trainloader, testloader, device,
+        checkpoint_path, model_name, save_epochs):
+    best_acc = 0.0
+    for epoch in range(0, config.epochs):
+        parse_epoch(trainloader, model, optimizer, criterion, device)
+        torch.cuda.empty_cache()
+
+        accuracy = parse_epoch(testloader, model, optimizer, criterion, device, train=False)
+        
+        if accuracy > best_acc:
+            torch.save(model.state_dict(), checkpoint_path.format(model=model_name, epoch=epoch, type='best'))
+            best_acc = accuracy
+            continue
+
+        if not epoch % save_epochs:
+            torch.save(model.state_dict(), checkpoint_path.format(model=model_name, epoch=epoch, type='normal'))    
+            
+def eval(model, criterion, optimizer, trainloader, testloader, device,
+            load_model, save_epochs):
+
+    model.load_state_dict(torch.load(load_model), True if device == 'cuda' else False)
+    parse_epoch(testloader, model, optimizer, criterion, device, train=False)
+
+if __name__ == "__main__":
+    PATH = os.path.dirname(os.path.abspath(__file__)) + '/'
+    # Parse training configuration
+    parser = argparse.ArgumentParser()
+
+    # Model params
+    parser.add_argument('--model_name', type=str, default="VGG-11", help="Name of the model when saved")
+    parser.add_argument('--num_classes', type=int, default=100, help='Dimensionality of output sequence')
+    parser.add_argument('--batch_size', type=int, default=400, help='Number of examples to process in a batch')
+    parser.add_argument('--epochs', type=int, default=60, help='Number of epochs until break')
+    parser.add_argument('--load_model', type=str, default='', help='Give location of weights to load model')
+    parser.add_argument('--save_epochs', type=int, default=1, help="save model after epochs")
+    parser.add_argument('--learning_rate', type=float, default=0.1, help='Learning rate')
+    parser.add_argument('--device', type=str, default="cuda:0", help="Training device 'cpu' or 'cuda'")
+    parser.add_argument('--save_model', type=bool, default=True, help="If set to false the model wont be saved.")
+    parser.add_argument('--data_dir', type=str, default=PATH + 'dataset', help="data dir for dataloader")
+    parser.add_argument('--checkpoint_path', type=str, default=PATH + 'saved-models/', help="model saving dir.")
+
+    config = parser.parse_args()
+
+    if not os.path.exists(config.checkpoint_path):
+        os.makedirs(config.checkpoint_path)
+    config.checkpoint_path = os.path.join(config.checkpoint_path, '{model}-{epoch}-{type}.pth')
+
+
     device = torch.device(config.device)
 
     model = vgg11(pretrained=False, num_classes=config.num_classes).to(device)
@@ -76,58 +132,10 @@ def train(config):
     trainloader = load_data(config.batch_size, config.data_dir, data_set='train')
     testloader = load_data(config.batch_size, config.data_dir, data_set='test')
 
-    best_acc = 0.0
-    for epoch in range(0, config.epochs):
-        train(trainloader, model, optimizer, criterion, device)
-        torch.cuda.empty_cache()
-
-        accuracy = test(testloader, model, optimizer, criterion, device, train=False)
-        
-        if accuracy > best_acc:
-            torch.save(net.state_dict(), checkpoint_path.format(net=args.model_name, epoch=epoch, type='best'))
-            best_acc = acc
-            continue
-
-        if not epochs % config.save_epochs:
-            torch.save(net.state_dict(), checkpoint_path.format(net=args.model_name, epoch=epoch, type='normal'))        
-            
-def eval(config):
-    device = torch.device(config.device)
-
-    model = vgg11(pretrained=False, num_classes=config.num_classes).to(device)
-    net.load_state_dict(torch.load(args.load_model, True if config.device == 'cuda' else False))
-
-    criterion = nn.CrossEntropyLoss()
-    testloader = load_data(config.batch_size, config.data_dir, data_set='test')
-
-    test(testloader, model, optimizer, criterion, device, train=False)
-
-if __name__ == "__main__":
-    PATH = os.path.dirname(os.path.abspath(__file__)) + '/'
-    # Parse training configuration
-    parser = argparse.ArgumentParser()
-
-    # Model params
-    parser.add_argument('--model_name', type=str, default="VGG-11-default", help="Name of the model when saved")
-    parser.add_argument('--num_classes', type=int, default=100, help='Dimensionality of output sequence')
-    parser.add_argument('--batch_size', type=int, default=128, help='Number of examples to process in a batch')
-    parser.add_argument('--epochs', type=int, default=60, help='Number of epochs until break')
-    parser.add_argument('--load_model', type=str, default=None, help='Give location of weights to load model')
-    parser.add_argument('--save_epochs', type=int, default=1, help="save model after epochs")
-    parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate')
-    parser.add_argument('--device', type=str, default="cuda:0", help="Training device 'cpu' or 'cuda'")
-    parser.add_argument('--save_model', type=bool, default=True, help="If set to false the model wont be saved.")
-    parser.add_argument('--data_dir', type=str, default=PATH + 'datasets', help="data dir for dataloader")
-    parser.add_argument('--checkpoint_path', type=str, default=PATH + 'saved-models/', help="model saving dir.")
-
-    config = parser.parse_args()
-
-    if not os.path.exists(config.checkpoint_path):
-        os.makedirs(config.checkpoint_path)
-    config.checkpoint_path = os.path.join(config.checkpoint_path, '{net}-{epoch}-{type}.pth')
-
     # Train the model
-    if not config.load_model:
-        train(config)
+    if config.load_model:
+        eval(model, criterion, None, trainloader, testloader, device,
+            config.load_model, config.save_epochs)        
     else:
-        eval(config)
+        train(model, criterion, optimizer, trainloader, testloader, device,
+            config.checkpoint_path, config.model_name, config.save_epochs)
