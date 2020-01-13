@@ -95,7 +95,7 @@ def replace_pixels(img, idx, approach = 'zero'):
 
     return img
 
-def compute_saliency_and_save():
+def compute_saliency_and_save(method = "roar"):
     former_output, new_images, image_counter = [], [], 0
 
     for batch_idx, (data, target) in enumerate(sample_loader):
@@ -104,26 +104,35 @@ def compute_saliency_and_save():
         # Compute saliency maps for the input data.
         cam, output_model = fullgrad.saliency(data)
         former_output.append(output_model)
-        Ks = [0.01, 0.1, 1]
+        if method == "roar":
+            Ks = [0.1,0.25,0.50,0.75, 0.90] # roar
+        elif method == "pp":
+            Ks = [0.01, 0.1, 1] #pixel perturbation
+
         for k in Ks:
         # Find most important pixels and replace.
             for i in range(data.size(0)):
                 sal_map = cam[i,:,:,:].squeeze()
                 image = unnormalize(data[i,:,:,:])
-                min_indexes = k_smallest_index_argsort(sal_map.detach().numpy(), k = round((244*224)-(244*224)*k))
-                new_image = replace_pixels(image, min_indexes, 'zero')
+                if method == "roar":
+                    indexes = k_largest_index_argsort(sal_map.detach().numpy(), k = round((244*224)*k))
+                elif method == "pp":
+                    indexes = k_smallest_index_argsort(sal_map.detach().numpy(), k = round((244*224)-(244*224)*k))
+                new_image = replace_pixels(image, indexes, 'zero')
                 new_images.append(new_image)
 
             # Unnormalize and save images with the found pixels changed.
             # new_image = unnormalize(new_image)
-                utils.save_image(new_image, f'pixels_removed/removal{k*100}%/img_id={image_counter}removal={k*100}%.jpeg')
+                utils.save_image(new_image, f'pixels_removed/{method}/removal{k*100}%/img_id={image_counter}removal={k*100}%.jpeg')
                 image_counter += 1
             image_counter = 0
 
     return former_output, new_images
 
 def compute_pertubation():
-    former_output, new_images = compute_saliency_and_save()
+    method = "pp"
+    method = "roar"
+    former_output, new_images = compute_saliency_and_save(method)
 
     # normalized_images = normalize(new_images)
     new_model_output = model.forward(np.asarray(new_images).from_numpy())
