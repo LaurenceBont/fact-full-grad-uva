@@ -63,6 +63,10 @@ def k_largest_index_argsort(a, k):
     return np.column_stack(np.unravel_index(idx, a.shape))
 
 def k_smallest_index_argsort(a,k):
+    """
+        Given a batch of images a [batch_size x 1 x 244 x 244]
+        sort and return the indices for the (244*244)-k most important pixels
+    """
     idx = np.argsort(a.ravel())[::-1][k:]
     return np.column_stack(np.unravel_index(idx, a.shape))
 
@@ -100,21 +104,21 @@ def compute_saliency_and_save():
         # Compute saliency maps for the input data.
         cam, output_model = fullgrad.saliency(data)
         former_output.append(output_model)
-
+        Ks = [0.01, 0.1, 1]
+        for k in Ks:
         # Find most important pixels and replace.
-        for i in range(data.size(0)):
-            sal_map = cam[i,:,:,:].squeeze()
-            image = unnormalize(data[i,:,:,:])
-            #k = []
-            min_indexes = k_smallest_index_argsort(sal_map.detach().numpy(), k = (244*224)-5018)
-            new_image = replace_pixels(image, min_indexes, 'zero')
-            new_images.append(new_image)
+            for i in range(data.size(0)):
+                sal_map = cam[i,:,:,:].squeeze()
+                image = unnormalize(data[i,:,:,:])
+                min_indexes = k_smallest_index_argsort(sal_map.detach().numpy(), k = round((244*224)-(244*224)*k))
+                new_image = replace_pixels(image, min_indexes, 'zero')
+                new_images.append(new_image)
 
             # Unnormalize and save images with the found pixels changed.
             # new_image = unnormalize(new_image)
-            utils.save_image(new_image, 'pixels_removed/' + str(image_counter) + '.jpeg')
-            image_counter += 1
-    image_counter = 0
+                utils.save_image(new_image, f'pixels_removed/removal{k*100}%/img_id={image_counter}removal={k*100}%.jpeg')
+                image_counter += 1
+            image_counter = 0
 
     return former_output, new_images
 
