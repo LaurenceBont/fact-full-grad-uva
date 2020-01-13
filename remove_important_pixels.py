@@ -62,6 +62,10 @@ def k_largest_index_argsort(a, k):
     idx = np.argsort(a.ravel())[:-k-1:-1]
     return np.column_stack(np.unravel_index(idx, a.shape))
 
+def k_smallest_index_argsort(a,k):
+    idx = np.argsort(a.ravel())[::-1][k:]
+    return np.column_stack(np.unravel_index(idx, a.shape))
+
 def get_k_based_percentage(img, percentage):
     w, h = img.shape
     numb_pix = w*h
@@ -101,9 +105,9 @@ def compute_saliency_and_save():
         for i in range(data.size(0)):
             sal_map = cam[i,:,:,:].squeeze()
             image = unnormalize(data[i,:,:,:])
-
-            max_indexes = k_largest_index_argsort(sal_map.detach().numpy(), k = 5018)
-            new_image = replace_pixels(image, max_indexes, 'zero')
+            #k = []
+            min_indexes = k_smallest_index_argsort(sal_map.detach().numpy(), k = (244*224)-5018)
+            new_image = replace_pixels(image, min_indexes, 'zero')
             new_images.append(new_image)
 
             # Unnormalize and save images with the found pixels changed.
