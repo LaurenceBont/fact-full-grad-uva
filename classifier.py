@@ -83,7 +83,7 @@ def parse_epoch(dataloader, model, optimizer, criterion, device, train=True):
                 print('batch: %d | Loss: %.3f | Acc: %.3f' % (batch_idx, losses/(batch_idx+1), 100.*correct/total))
     return correct/total
 
-def train(model, criterion, optimizer, trainloader, testloader, device,
+def train(model, criterion, optimizer, scheduler, trainloader, testloader, device,
         checkpoint_path, model_name, save_epochs):
     '''
         This function trains the model that is passed in the first argument,
@@ -91,9 +91,10 @@ def train(model, criterion, optimizer, trainloader, testloader, device,
     '''
     best_acc = 0.0
     for epoch in range(0, config.epochs):
+        print(optimizer)
         parse_epoch(trainloader, model, optimizer, criterion, device)
         torch.cuda.empty_cache()
-
+        scheduler.step()
         accuracy = parse_epoch(testloader, model, optimizer, criterion, device, train=False)
         
         if accuracy > best_acc:
@@ -121,11 +122,11 @@ if __name__ == "__main__":
     # Model params
     parser.add_argument('--model_name', type=str, default="VGG-11", help="Name of the model when saved")
     parser.add_argument('--num_classes', type=int, default=100, help='Dimensionality of output sequence')
-    parser.add_argument('--batch_size', type=int, default=425, help='Number of examples to process in a batch')
-    parser.add_argument('--epochs', type=int, default=60, help='Number of epochs until break')
+    parser.add_argument('--batch_size', type=int, default=128, help='Number of examples to process in a batch')
+    parser.add_argument('--epochs', type=int, default=200, help='Number of epochs until break')
     parser.add_argument('--load_model', type=str, default='', help='Give location of weights to load model')
     parser.add_argument('--save_epochs', type=int, default=1, help="save model after epochs")
-    parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate')
+    parser.add_argument('--learning_rate', type=float, default=0.1, help='Learning rate')
     parser.add_argument('--device', type=str, default="cuda:0", help="Training device 'cpu' or 'cuda'")
     parser.add_argument('--save_model', type=bool, default=True, help="If set to false the model wont be saved.")
     parser.add_argument('--data_dir', type=str, default=PATH + 'dataset', help="data dir for dataloader")
@@ -143,7 +144,9 @@ if __name__ == "__main__":
     model = vgg11(pretrained=False, num_classes=config.num_classes, class_size=512).to(device)
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=config.learning_rate)
+    # optimizer = optim.Adam(model.parameters(), lr=config.learning_rate)
+    optimizer = optim.SGD(model.parameters(), lr=config.learning_rate, momentum=0.9, nesterov=True)
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 120, 160, 200], gamma=0.2)
 
     trainloader = load_cifar_data(config.batch_size, config.data_dir, data_set='train')
     testloader = load_cifar_data(config.batch_size, config.data_dir, data_set='test')
@@ -153,5 +156,5 @@ if __name__ == "__main__":
         eval(model, criterion, None, trainloader, testloader, device,
             config.load_model, config.save_epochs)        
     else:
-        train(model, criterion, optimizer, trainloader, testloader, device,
+        train(model, criterion, optimizer, scheduler, trainloader, testloader, device,
             config.checkpoint_path, config.model_name, config.save_epochs)
