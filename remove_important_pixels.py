@@ -62,13 +62,22 @@ def k_largest_index_argsort(a, k):
     idx = np.argsort(a.ravel())[:-k-1:-1]
     return np.column_stack(np.unravel_index(idx, a.shape))
 
-def k_smallest_index_argsort(a,k):
+def k_smallest_index_argsort(img,k):
     """
         Given a batch of images a [batch_size x 1 x 244 x 244]
         sort and return the indices for the (244*244)-k most important pixels
     """
-    idx = np.argsort(a.ravel())[::-1][k:]
-    return np.column_stack(np.unravel_index(idx, a.shape))
+    idx = np.argsort(img.ravel())[::-1][k:]
+    return np.column_stack(np.unravel_index(idx, img.shape))
+
+
+def return_k_index_argsort(img,k, method):
+    idx = np.argsort(img.ravel())
+    if method == "roar":
+        return np.column_stack(np.unravel_index(idx[:-k-1:-1], img.shape))
+    elif method == "pp":
+        return np.column_stack(np.unravel_index(idx[::-1][k:], img.shape))
+
 
 def get_k_based_percentage(img, percentage):
     w, h = img.shape
@@ -104,45 +113,62 @@ def compute_saliency_and_save(method = "roar"):
         # Compute saliency maps for the input data.
         cam, output_model = fullgrad.saliency(data)
         former_output.append(output_model)
+        total_pixels = 244*244
+        # ==== ======
+        # Create another function to create these Ks
         if method == "roar":
-            Ks = [0.1,0.25,0.50,0.75, 0.90] # roar
+            Ks_roar = [0.1,0.25,0.50,0.75, 0.90] # roar
+            Ks = [round(k * total_pixels) for k in Ks_roar]
         elif method == "pp":
-            Ks = [0.01, 0.1, 1] #pixel perturbation
-
-        for k in Ks:
+            Ks_pp = [0.01, 0.1, 1] #pixel perturbation
+            Ks = [round(total_pixels -  (k * total_pixels)) for k in Ks_pp]
+        # ==== ======
+        for k_index, k in enumerate(Ks):
         # Find most important pixels and replace.
             for i in range(data.size(0)):
                 sal_map = cam[i,:,:,:].squeeze()
                 image = unnormalize(data[i,:,:,:])
-                if method == "roar":
-                    indexes = k_largest_index_argsort(sal_map.detach().numpy(), k = round((244*224)*k))
-                elif method == "pp":
-                    indexes = k_smallest_index_argsort(sal_map.detach().numpy(), k = round((244*224)-(244*224)*k))
+                #if method == "roar":
+                    #indexes = k_largest_index_argsort(sal_map.detach().numpy(), k = round((244*224)*k))
+               # elif method == "pp":
+                    #indexes = k_smallest_index_argsort(sal_map.detach().numpy(), k = round((244*224)-(244*224)*k))
+                indexes = return_k_index_argsort(sal_map.detach().numpy(), k, method)
                 new_image = replace_pixels(image, indexes, 'zero')
                 new_images.append(new_image)
 
             # Unnormalize and save images with the found pixels changed.
             # new_image = unnormalize(new_image)
-                utils.save_image(new_image, f'pixels_removed/{method}/removal{k*100}%/img_id={image_counter}removal={k*100}%.jpeg')
+                if method == "roar":
+                    print(f'percentage of pixels{Ks_roar[k_index]*100}')
+                    utils.save_image(new_image, f'pixels_removed/{method}/removal{Ks_roar[k_index]*100}%/img_id={image_counter}removal={Ks_roar[k_index]*100}%.jpeg')
+                elif method == "pp":
+                    utils.save_image(new_image, f'pixels_removed/{method}/removal{Ks_pp[k_index]*100}%/img_id={image_counter}removal={Ks_pp[k_index]*100}%.jpeg')
                 image_counter += 1
             image_counter = 0
 
-    return former_output, new_images
+    return 1,2
+    #return former_output, new_images
 
-def compute_pertubation():
-    method = "pp"
-    method = "roar"
-    former_output, new_images = compute_saliency_and_save(method)
+def compute_pertubation(k):
+    methods = "pp"
+    #Ks = compute_ks(method)
+    former_output, new_images = compute_saliency_and_save(method, k)
 
     # normalized_images = normalize(new_images)
-    new_model_output = model.forward(np.asarray(new_images).from_numpy())
+    #new_model_output = model.forward(np.asarray(new_images).from_numpy())
 
     # Calculate rare shit
-    max_index = output_model.argmax()
-    diff = abs(new_model_output[max_index]-output_model[max_index]).sum()
-    print(diff)
+    #max_index = output_model.argmax()
+    #diff = abs(new_model_output[max_index]-output_model[max_index]).sum()
+    #print(diff)
+    return 
 
-            
+ def pixel_perturbation():
+    # create Ks
+    # call old_images, new_images = compute_perturbation(k)
+    # old_result = model.forward(old_images)
+    # old_result = argmax(old_result)
+    #diff = abs()
 
 
 if __name__ == "__main__":
@@ -150,6 +176,9 @@ if __name__ == "__main__":
     create_folder(save_path)
     # compute_saliency_and_save()
     compute_pertubation()
+
+    #images = compute_perturbation()
+    #compute_roar()
     print('Saliency maps saved.')
 
         
