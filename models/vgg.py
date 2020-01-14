@@ -34,15 +34,17 @@ model_urls = {
     'vgg19_bn': 'https://download.pytorch.org/models/vgg19_bn-c79401a0.pth',
 }
 
+cuda = torch.cuda.is_available()
+device = torch.device("cuda" if cuda else "cpu")
 class VGG(nn.Module):
 
-    def __init__(self, vgg_name, batch_norm=False, num_classes=1000, init_weights=True):
+    def __init__(self, vgg_name, class_size=512*7*7, batch_norm=False, num_classes=1000, init_weights=True):
         super(VGG, self).__init__()
         self.features = self.make_layers(cfg[vgg_name], batch_norm=batch_norm)
         self.name = vgg_name
         self.bn = batch_norm
         self.classifier = nn.Sequential(
-            nn.Linear(512, 4096),
+            nn.Linear(class_size, 4096),
             nn.ReLU(False),
             nn.Dropout(),
             nn.Linear(4096, 4096),
@@ -69,7 +71,7 @@ class VGG(nn.Module):
         self.get_biases = True
         self.biases = [0]
 
-        x = torch.zeros(1,3,224,224) #put in GPU
+        x = torch.zeros(1,3,224,224).to(device) #put in GPU
         _ = self.forward(x)
         self.get_biases = False
         return self.biases

@@ -139,7 +139,7 @@ if __name__ == "__main__":
 
     device = torch.device(config.device)
 
-    model = vgg11(pretrained=False, num_classes=config.num_classes).to(device)
+    model = vgg11(pretrained=False, num_classes=config.num_classes, class_size=512).to(device)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=config.learning_rate)
