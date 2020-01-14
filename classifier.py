@@ -2,11 +2,12 @@
 # Copyright (c) 2019 Idiap Research Institute, http://www.idiap.ch/
 # Written by Suraj Srinivas <suraj.srinivas@idiap.ch>
 #
-
-""" This document contains the functions to classify the images,
-    with a certain dataLoader. Calling this file as main function
-    it allows for certain flags to be set and instantly run the classifier
-    and save it"""
+""" 
+This document contains the functions to classify the images,
+with a certain dataLoader. Calling this file as main function
+it allows for certain flags to be set and instantly run the classifier
+and save it
+"""
 
 import torch
 from torchvision import datasets, transforms, utils
