@@ -1,2 +1,9 @@
 results
-__pycache__
+dataset
+saved-models
+*.pyc
+*__pycache__*
+*.tar
+*.tar.gz
+*.jpg
+*.JPEG
