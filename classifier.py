@@ -3,7 +3,10 @@
 # Written by Suraj Srinivas <suraj.srinivas@idiap.ch>
 #
 
-""" This document classifies images """
+""" This document contains the functions to classify the images,
+    with a certain dataLoader. Calling this file as main function
+    it allows for certain flags to be set and instantly run the classifier
+    and save it"""
 
 import torch
 from torchvision import datasets, transforms, utils
@@ -13,7 +16,10 @@ import os
 import argparse
 from models.vgg import vgg11
 
-def load_data(batch_size, data_dir, data_set='train'):
+def load_cifar_data(batch_size, data_dir, data_set='train'):
+    """
+        load_cifar_data prepares a dataloader for the cifar dataset.
+    """
     print('==> Preparing data..')
     if data_set == 'train':
         transform_train = transforms.Compose([
@@ -38,6 +44,9 @@ def load_data(batch_size, data_dir, data_set='train'):
         return None
 
 def parse_epoch(dataloader, model, optimizer, criterion, device, train=True):
+    '''
+        Training and evaluation are put together to avoid duplicated code.
+    '''
     if train:
         model.train()
         print('training mode')
@@ -53,7 +62,6 @@ def parse_epoch(dataloader, model, optimizer, criterion, device, train=True):
             loss = criterion.forward(outputs, target)
             loss.backward()
             optimizer.step()
-            print('update step')
 
             losses += loss.item()
             _, predicted = outputs.max(1)
@@ -76,6 +84,10 @@ def parse_epoch(dataloader, model, optimizer, criterion, device, train=True):
 
 def train(model, criterion, optimizer, trainloader, testloader, device,
         checkpoint_path, model_name, save_epochs):
+    '''
+        This function trains the model that is passed in the first argument,
+        using the arguments used afterwards.
+    '''
     best_acc = 0.0
     for epoch in range(0, config.epochs):
         parse_epoch(trainloader, model, optimizer, criterion, device)
@@ -93,7 +105,10 @@ def train(model, criterion, optimizer, trainloader, testloader, device,
             
 def eval(model, criterion, optimizer, trainloader, testloader, device,
             load_model, save_epochs):
-
+    """
+        This function loads the model weights from the load_model location.
+        Afterwards it is run through 1 epoch of the test dataset to get the accuracy.
+    """
     model.load_state_dict(torch.load(load_model), True if device == 'cuda' else False)
     parse_epoch(testloader, model, optimizer, criterion, device, train=False)
 
@@ -105,7 +120,7 @@ if __name__ == "__main__":
     # Model params
     parser.add_argument('--model_name', type=str, default="VGG-11", help="Name of the model when saved")
     parser.add_argument('--num_classes', type=int, default=100, help='Dimensionality of output sequence')
-    parser.add_argument('--batch_size', type=int, default=128, help='Number of examples to process in a batch')
+    parser.add_argument('--batch_size', type=int, default=425, help='Number of examples to process in a batch')
     parser.add_argument('--epochs', type=int, default=60, help='Number of epochs until break')
     parser.add_argument('--load_model', type=str, default='', help='Give location of weights to load model')
     parser.add_argument('--save_epochs', type=int, default=1, help="save model after epochs")
@@ -129,8 +144,8 @@ if __name__ == "__main__":
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=config.learning_rate)
 
-    trainloader = load_data(config.batch_size, config.data_dir, data_set='train')
-    testloader = load_data(config.batch_size, config.data_dir, data_set='test')
+    trainloader = load_cifar_data(config.batch_size, config.data_dir, data_set='train')
+    testloader = load_cifar_data(config.batch_size, config.data_dir, data_set='test')
 
     # Train the model
     if config.load_model:
