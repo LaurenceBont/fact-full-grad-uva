@@ -25,6 +25,7 @@ PATH = os.path.dirname(os.path.abspath(__file__)) + '/'
 dataset = PATH + 'dataset/'
 
 batch_size = 4
+total_pixels = 244*244
 
 cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
@@ -39,6 +40,7 @@ sample_loader = torch.utils.data.DataLoader(
                    ])),
     batch_size= batch_size, shuffle=False)
 
+transform_image = transforms.ToPILImage()
 normalize = transforms.Normalize(mean = [0.485, 0.456, 0.406],
                                     std = [0.229, 0.224, 0.225])
 unnormalize = NormalizeInverse(mean = [0.485, 0.456, 0.406],
@@ -46,8 +48,8 @@ unnormalize = NormalizeInverse(mean = [0.485, 0.456, 0.406],
 
 
 # uncomment to use VGG
-# model = vgg16_bn(pretrained=True)
-model = resnet18(pretrained=True).to(device)
+model = vgg16_bn(pretrained=True).to(device)
+# model = resnet18(pretrained=True).to(device)
 
 # Initialize FullGrad objects
 fullgrad = FullGrad(model)
@@ -55,19 +57,19 @@ simple_fullgrad = SimpleFullGrad(model)
 
 save_path = PATH + 'results/'
 
-# Found this function on stackoverflow 
-# url: https://stackoverflow.com/questions/43386432/how-to-get-indexes-of-k-maximum-values-from-a-numpy-multidimensional-array
-# Other approach: flatten --> max --> modulo row len om index te getten.
-def k_largest_index_argsort(a, k):
-    idx = np.argsort(a.ravel())[:-k-1:-1]
-    return np.column_stack(np.unravel_index(idx, a.shape))
+def return_k_index_argsort(img, k, method):
+    idx = np.argsort(img.ravel())
+    if method == "roar":
+        return np.column_stack(np.unravel_index(idx[:-k-1:-1], img.shape))
+    elif method == "pp":
+        return np.column_stack(np.unravel_index(idx[::-1][:k], img.shape))
 
 def get_k_based_percentage(img, percentage):
     w, h = img.shape
     numb_pix = w*h
     return numb_pix * percentage
 
-def calc_mean_channels(img):
+def calc_rgb_means(img):
     mean_r = torch.mean(img[0,:,:])
     mean_g = torch.mean(img[1,:,:])
     mean_b = torch.mean(img[2,:,:])
@@ -87,53 +89,85 @@ def replace_pixels(img, idx, approach = 'zero'):
 
     return img
 
-def compute_saliency_and_save():
-    former_output, new_images, image_counter = [], [], 0
+def compute_saliency_and_save(k, method):
+    former_outputs, new_images, image_counter = [], [], 0
 
     for batch_idx, (data, target) in enumerate(sample_loader):
         data, target = data.to(device).requires_grad_(), target.to(device)
 
         # Compute saliency maps for the input data.
-        cam, output_model = fullgrad.saliency(data)
-        former_output.append(output_model)
+        cam, model_output = fullgrad.saliency(data)
 
         # Find most important pixels and replace.
         for i in range(data.size(0)):
+            # Append former output to a tensor.
+            former_outputs.append(model_output[i])   
+
+            # Get unnormalized image and heat map.
             sal_map = cam[i,:,:,:].squeeze()
             image = unnormalize(data[i,:,:,:])
 
-            max_indexes = k_largest_index_argsort(sal_map.detach().numpy(), k = 5018)
-            new_image = replace_pixels(image, max_indexes, 'zero')
+            # Get k indices and replace within image
+            indices = return_k_index_argsort(sal_map.detach().numpy(), k, method)
+            new_image = replace_pixels(image, indices, 'zero')
             new_images.append(new_image)
 
-            # Unnormalize and save images with the found pixels changed.
-            # new_image = unnormalize(new_image)
-            utils.save_image(new_image, 'pixels_removed/' + str(image_counter) + '.jpeg')
+            # Save adjusted images, if needed.
+            if method == "roar":
+                utils.save_image(new_image, f'pixels_removed/{method}/removal{k*100}%/img_id={image_counter}removal={k*100}%.jpeg')
+
             image_counter += 1
     image_counter = 0
 
-    return former_output, new_images
+    return torch.stack(former_outputs), torch.stack(new_images)
+    
 
-def compute_pertubation():
-    former_output, new_images = compute_saliency_and_save()
+def compute_pertubation(k, method = 'pp'):
+    # Get adjusted images and fetch former outputs
+    former_outputs, new_images = compute_saliency_and_save(k, method)
 
+    # Normalise images again
+    # new_images = transform_image(new_images)
     # normalized_images = normalize(new_images)
-    new_model_output = model.forward(np.asarray(new_images).from_numpy())
 
-    # Calculate rare shit
-    max_index = output_model.argmax()
-    diff = abs(new_model_output[max_index]-output_model[max_index]).sum()
-    print(diff)
+    # Create new outputs
+    new_model_output = model.forward(new_images)
 
-            
+    # Calculate absolute fractional output change
+    total = 0
+    for i, former_output in enumerate(former_outputs):
+        new_output = new_model_output[i]
 
+        # Get argmax first outpout and calc difference
+        max_index = former_output.argmax()
+        diff_den = abs(new_output[max_index]-former_output[max_index])
+        total += diff_den/(new_output[max_index]+former_output[max_index])
+
+    return (total/former_output.size(0))
+
+def pixel_pertubation():
+    percentages = [0.001, 0.005, 0.008, 0.01, 0.03, 0.05, 0.08, 0.1]
+    Ks = [round((k * total_pixels)) for k in percentages]
+    
+    faoc_results, random_results = [], []    
+    for k_index, k in enumerate(Ks):
+        faoc_full_grad = compute_pertubation(k, method = "pp") # fractional absolute output change
+        # faoc_random = ...
+
+        full_grad_results.append(faoc_full_grad)
+        print("----------------------------------")
+        print(f'petje for {percentages[k_index]*100}% = { faoc }')
+
+    plt.plot(percentages, full_grad_results, marker = 'o')
+    # plt.plot(percentages, random_results, marker = 'o')
+    plt.show()
 
 if __name__ == "__main__":
     # Create folder to saliency maps
     create_folder(save_path)
     # compute_saliency_and_save()
-    compute_pertubation()
-    print('Saliency maps saved.')
+    pixel_pertubation()
+    print("Pertubation calculated")
 
         
         
