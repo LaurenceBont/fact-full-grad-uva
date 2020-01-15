@@ -48,12 +48,12 @@ def load_cifar_data(batch_size, transform, shuffle, num_workers, data_dir, datas
     
 def save_cifar_image(data_dir, label, image, name, dataset):
     """
-    This function saves a single cifar image in the correct format.
-    the data_dir is the root dataset directory, 
-    name is the name of the dataset
-    dataset is either train or test
-    the label is the class of the image
-    image is the image to be saved
+        This function saves a single cifar image in the correct format.
+        data_dir: the root dataset directory, 
+        name: the name of the dataset
+        dataset: either train or test
+        label: the class of the image
+        image: the image to be saved
     """
     utils.save_image(image, '%s/%s/%s/%s.jpg' % (data_dir, dataset, str(label.item()), name))
 
