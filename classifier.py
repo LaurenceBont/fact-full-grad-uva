@@ -15,33 +15,8 @@ import torch.optim as optim
 import os
 import argparse
 from models.vgg import vgg11
+from utils import prepare_cifar_data, load_cifar_data, CIFAR_100_TRANSFORM_TRAIN, CIFAR_100_TRANSFORM_TEST
 
-def load_cifar_data(batch_size, data_dir, data_set='train'):
-    """
-        load_cifar_data prepares a dataloader for the cifar dataset.
-    """
-    print('==> Preparing data..')
-    if data_set == 'train':
-        transform_train = transforms.Compose([
-            transforms.RandomCrop(32, padding=4),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-        ])
-        trainset = datasets.CIFAR100(root=data_dir, train=True, download=True, transform=transform_train)
-        trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=2)
-        return trainloader
-    elif data_set == 'test':
-        transform_test = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-        ])
-        testset = datasets.CIFAR100(root=data_dir, train=False, download=True, transform=transform_test)
-        testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=2)
-        return testloader
-    else:
-        print('set does not exist, please enter train/test as data_set argument')
-        return None
 
 def parse_epoch(dataloader, model, optimizer, criterion, device, train=True):
     '''
@@ -49,7 +24,6 @@ def parse_epoch(dataloader, model, optimizer, criterion, device, train=True):
     '''
     if train:
         model.train()
-        print('training mode')
     else:
         model.eval()
 
@@ -128,6 +102,7 @@ if __name__ == "__main__":
     parser.add_argument('--device', type=str, default="cuda:0", help="Training device 'cpu' or 'cuda'")
     parser.add_argument('--save_model', type=bool, default=True, help="If set to false the model wont be saved.")
     parser.add_argument('--data_dir', type=str, default=PATH + 'dataset', help="data dir for dataloader")
+    parser.add_argument('--dataset_name', type=str, default='/cifar-100-imageFolder', help= "Name of dataset contained in the data_dir")
     parser.add_argument('--checkpoint_path', type=str, default=PATH + 'saved-models/', help="model saving dir.")
 
     config = parser.parse_args()
@@ -144,8 +119,10 @@ if __name__ == "__main__":
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=config.learning_rate)
 
-    trainloader = load_cifar_data(config.batch_size, config.data_dir, data_set='train')
-    testloader = load_cifar_data(config.batch_size, config.data_dir, data_set='test')
+    trainloader = load_cifar_data(config.batch_size, CIFAR_100_TRANSFORM_TRAIN,
+                                True, 2, config.data_dir, config.dataset_name, train=True)
+    testloader = load_cifar_data(config.batch_size, CIFAR_100_TRANSFORM_TEST,
+                                False, 2, config.data_dir, config.dataset_name, train=False)
 
     # Train the model
     if config.load_model:
