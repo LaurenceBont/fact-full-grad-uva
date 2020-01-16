@@ -49,7 +49,6 @@ dependencies:
   - jasper=2.0.14=h07fcdf6_1
   - jedi=0.15.1=py37_0
   - jinja2=2.10.3=py_0
-  - jpeg=9c=h14c3975_1001
   - jsonschema=3.1.1=py37_0
   - jupyter_client=5.3.4=py37_0
   - jupyter_core=4.6.1=py37_0
