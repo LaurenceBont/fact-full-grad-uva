@@ -144,7 +144,6 @@ if __name__ == "__main__":
     model = vgg11(pretrained=False, num_classes=config.num_classes, class_size=512).to(device)
 
     criterion = nn.CrossEntropyLoss()
-    # optimizer = optim.Adam(model.parameters(), lr=config.learning_rate)
     optimizer = optim.SGD(model.parameters(), lr=config.learning_rate, momentum=0.9, nesterov=True)
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 120, 160, 200], gamma=0.2)
 
