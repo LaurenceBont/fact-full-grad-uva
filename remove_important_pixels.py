@@ -57,12 +57,15 @@ simple_fullgrad = SimpleFullGrad(model)
 
 save_path = PATH + 'results/'
 
-def return_k_index_argsort(img, k, method):
-    idx = np.argsort(img.ravel())
+def return_k_index_argsort(salience_map, k, method):
+    idx = np.argsort(salience_map.ravel())
     if method == "roar":
-        return np.column_stack(np.unravel_index(idx[:-k-1:-1], img.shape))
+        return np.column_stack(np.unravel_index(idx[:-k-1:-1], salience_map.shape))
     elif method == "pp":
-        return np.column_stack(np.unravel_index(idx[::-1][:k], img.shape))
+        return np.column_stack(np.unravel_index(idx[::-1][:k], salience_map.shape))
+    elif method == "random":
+        idx = np.random.choice(idx.shape[0], k, replace=False)
+        return np.column_stack(np.unravel_index(idx, salience_map.shape))
 
 def get_k_based_percentage(img, percentage):
     w, h = img.shape
@@ -149,14 +152,14 @@ def pixel_pertubation():
     percentages = [0.001, 0.005, 0.008, 0.01, 0.03, 0.05, 0.08, 0.1]
     Ks = [round((k * total_pixels)) for k in percentages]
     
-    faoc_results, random_results = [], []    
+    full_grad_results, random_results = [], []    
     for k_index, k in enumerate(Ks):
         faoc_full_grad = compute_pertubation(k, method = "pp") # fractional absolute output change
         # faoc_random = ...
 
         full_grad_results.append(faoc_full_grad)
         print("----------------------------------")
-        print(f'petje for {percentages[k_index]*100}% = { faoc }')
+        print(f'petje for {percentages[k_index]*100}% = { faoc_full_grad }')
 
     plt.plot(percentages, full_grad_results, marker = 'o')
     # plt.plot(percentages, random_results, marker = 'o')
