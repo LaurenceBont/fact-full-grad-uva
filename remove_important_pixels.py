@@ -20,6 +20,7 @@ from models.vgg import *
 from models.resnet import *
 from misc_functions import *
 
+import time
 # PATH variables
 PATH = os.path.dirname(os.path.abspath(__file__)) + '/'
 dataset = PATH + 'dataset/'
@@ -76,7 +77,7 @@ def return_k_index_argsort(img,k, method):
     if method == "roar":
         return np.column_stack(np.unravel_index(idx[:-k-1:-1], img.shape))
     elif method == "pp":
-        return np.column_stack(np.unravel_index(idx[::-1][k:], img.shape))
+        return np.column_stack(np.unravel_index(idx[::-1][:k], img.shape))
 
 
 def get_k_based_percentage(img, percentage):
@@ -107,6 +108,7 @@ def replace_pixels(img, idx, approach = 'zero'):
 def compute_saliency_and_save(method = "roar"):
     former_output, new_images, image_counter = [], [], 0
 
+    image_counter = 0
     for batch_idx, (data, target) in enumerate(sample_loader):
         data, target = data.to(device).requires_grad_(), target.to(device)
 
@@ -117,10 +119,11 @@ def compute_saliency_and_save(method = "roar"):
         # ==== ======
         # Create another function to create these Ks
         if method == "roar":
-            Ks_roar = [0.1,0.25,0.50,0.75, 0.90] # roar
+            #Ks_roar = [0.1,0.25,0.50,0.75, 0.90] # roar
+            Ks_roar = [0.1]
             Ks = [round(k * total_pixels) for k in Ks_roar]
         elif method == "pp":
-            Ks_pp = [0.01, 0.1, 1] #pixel perturbation
+            Ks_pp = [0.1] #pixel perturbation
             Ks = [round(total_pixels -  (k * total_pixels)) for k in Ks_pp]
         # ==== ======
         for k_index, k in enumerate(Ks):
@@ -139,17 +142,19 @@ def compute_saliency_and_save(method = "roar"):
             # Unnormalize and save images with the found pixels changed.
             # new_image = unnormalize(new_image)
                 if method == "roar":
-                    print(f'percentage of pixels{Ks_roar[k_index]*100}')
+                    #print(f'percentage of pixels{Ks_roar[k_index]*100}')
                     utils.save_image(new_image, f'pixels_removed/{method}/removal{Ks_roar[k_index]*100}%/img_id={image_counter}removal={Ks_roar[k_index]*100}%.jpeg')
                 elif method == "pp":
-                    utils.save_image(new_image, f'pixels_removed/{method}/removal{Ks_pp[k_index]*100}%/img_id={image_counter}removal={Ks_pp[k_index]*100}%.jpeg')
+                    #utils.save_image(new_image, f'pixels_removed/{method}/removal{Ks_pp[k_index]*100}%/img_id={image_counter}removal={Ks_pp[k_index]*100}%.jpeg')
+                    utils.save_image(new_image, f'pixels_removed/{method}img_id={image_counter}removal={Ks_pp[k_index]*100}%.jpeg')
+
                 image_counter += 1
-            image_counter = 0
+            
 
     return 1,2
     #return former_output, new_images
 
-def compute_pertubation(k):
+def compute_pertubation():
     methods = "pp"
     #Ks = compute_ks(method)
     former_output, new_images = compute_saliency_and_save(method, k)
@@ -161,25 +166,20 @@ def compute_pertubation(k):
     #max_index = output_model.argmax()
     #diff = abs(new_model_output[max_index]-output_model[max_index]).sum()
     #print(diff)
-    return 
-
- def pixel_perturbation():
-    # create Ks
-    # call old_images, new_images = compute_perturbation(k)
-    # old_result = model.forward(old_images)
-    # old_result = argmax(old_result)
-    #diff = abs()
+    return None
 
 
 if __name__ == "__main__":
     # Create folder to saliency maps
+    import time
+    start_time = time.time()
     create_folder(save_path)
-    # compute_saliency_and_save()
-    compute_pertubation()
-
+    compute_saliency_and_save()
+    #compute_pertubation()
     #images = compute_perturbation()
     #compute_roar()
     print('Saliency maps saved.')
+    print("--- %s seconds ---" % (time.time() - start_time))
 
         
         
