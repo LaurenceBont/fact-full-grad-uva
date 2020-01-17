@@ -1,1 +1,1 @@
-from .cifar import *
+from .dataloader import *

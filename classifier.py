@@ -16,7 +16,7 @@ import torch.optim as optim
 import os
 import argparse
 from models.vgg import vgg11
-from utils import prepare_cifar_data, load_cifar_data, CIFAR_100_TRANSFORM_TRAIN, CIFAR_100_TRANSFORM_TEST
+from utils import prepare_data, load_data, CIFAR_100_TRANSFORM_TRAIN, CIFAR_100_TRANSFORM_TEST, CIFAR_10_TRANSFORM
 
 
 def parse_epoch(dataloader, model, optimizer, criterion, device, train=True):
@@ -31,6 +31,7 @@ def parse_epoch(dataloader, model, optimizer, criterion, device, train=True):
     losses, total, correct = 0, 0, 0
     for batch_idx, (data, target) in enumerate(dataloader):
         data, target = data.to(device), target.to(device)
+        # print(data.shape)
         if train:
             optimizer.zero_grad()    
             outputs = model(data)
@@ -65,7 +66,8 @@ def train(model, criterion, optimizer, scheduler, trainloader, testloader, devic
     '''
     best_acc = 0.0
     for epoch in range(0, config.epochs):
-        print(optimizer)
+        # print(optimizer)
+        print("epoch: ", epoch)
         parse_epoch(trainloader, model, optimizer, criterion, device)
         torch.cuda.empty_cache()
         scheduler.step()
@@ -95,7 +97,7 @@ if __name__ == "__main__":
 
     # Model params
     parser.add_argument('--model_name', type=str, default="VGG-11", help="Name of the model when saved")
-    parser.add_argument('--num_classes', type=int, default=100, help='Dimensionality of output sequence')
+    parser.add_argument('--num_classes', type=int, default=10, help='Dimensionality of output sequence')
     parser.add_argument('--batch_size', type=int, default=128, help='Number of examples to process in a batch')
     parser.add_argument('--epochs', type=int, default=200, help='Number of epochs until break')
     parser.add_argument('--load_model', type=str, default='', help='Give location of weights to load model')
@@ -104,8 +106,9 @@ if __name__ == "__main__":
     parser.add_argument('--device', type=str, default="cuda:0", help="Training device 'cpu' or 'cuda'")
     parser.add_argument('--save_model', type=bool, default=True, help="If set to false the model wont be saved.")
     parser.add_argument('--data_dir', type=str, default=PATH + 'dataset', help="data dir for dataloader")
-    parser.add_argument('--dataset_name', type=str, default='/cifar-100-imageFolder', help= "Name of dataset contained in the data_dir")
+    parser.add_argument('--dataset_name', type=str, default='/cifar10-imagefolder', help= "Name of dataset contained in the data_dir")
     parser.add_argument('--checkpoint_path', type=str, default=PATH + 'saved-models/', help="model saving dir.")
+    parser.add_argument('--dataset', type=str, default='cifar10', help="Select cifar10 or cifar100 dataset")
 
     config = parser.parse_args()
 
@@ -122,10 +125,10 @@ if __name__ == "__main__":
     optimizer = optim.SGD(model.parameters(), lr=config.learning_rate, momentum=0.9, nesterov=True, weight_decay=5e-4)
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 120, 160, 200], gamma=0.2)
 
-    trainloader = load_cifar_data(config.batch_size, CIFAR_100_TRANSFORM_TRAIN,
-                                True, 2, config.data_dir, config.dataset_name, train=True)
-    testloader = load_cifar_data(config.batch_size, CIFAR_100_TRANSFORM_TEST,
-                                False, 2, config.data_dir, config.dataset_name, train=False)
+    trainloader = load_data(config.batch_size, CIFAR_10_TRANSFORM,
+                                True, 2, config.data_dir, config.dataset_name, train=True, name=config.dataset)
+    testloader = load_data(config.batch_size, CIFAR_10_TRANSFORM,
+                                False, 2, config.data_dir, config.dataset_name, train=False, name=config.dataset)
 
     # Train the model
     if config.load_model:
