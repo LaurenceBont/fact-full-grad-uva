@@ -119,7 +119,7 @@ if __name__ == "__main__":
     model = vgg11(pretrained=False, num_classes=config.num_classes, class_size=512).to(device)
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(model.parameters(), lr=config.learning_rate, momentum=0.9, nesterov=True)
+    optimizer = optim.SGD(model.parameters(), lr=config.learning_rate, momentum=0.9, nesterov=True, weight_decay=5e-4)
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 120, 160, 200], gamma=0.2)
 
     trainloader = load_cifar_data(config.batch_size, CIFAR_100_TRANSFORM_TRAIN,
