@@ -125,7 +125,7 @@ if __name__ == "__main__":
     # Load or train model
     if os.path.exists('saved-models/vgg11-60-best.pth'):
         print("The model will now be loaded.")
-        model.load_state_dict(torch.load(load_model), True if device == 'cuda' else False)
+        model.load_state_dict(torch.load('saved-models/vgg11-60-best.pth'), True if device == 'cuda' else False)
     else:
         model = vgg11(pretrained=False, im_size = sample_img.shape, num_classes=config.num_classes, class_size=512).to(device)
 
