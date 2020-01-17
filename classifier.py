@@ -93,6 +93,8 @@ if __name__ == "__main__":
     # Parse training configuration
     parser = argparse.ArgumentParser()
 
+    torch.manual_seed(1)
+
     # Model params
     parser.add_argument('--model_name', type=str, default="VGG-11", help="Name of the model when saved")
     parser.add_argument('--num_classes', type=int, default=100, help='Dimensionality of output sequence')
