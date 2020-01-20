@@ -57,7 +57,9 @@ unnormalize = NormalizeInverse(mean = [0.485, 0.456, 0.406],
 
 
 # uncomment to use VGG
-model = vgg16_bn(pretrained=True).to(device)
+print("The model will now be loaded.")
+model = vgg11(pretrained=False, im_size = sample_img.shape, num_classes=config.num_classes, class_size=512).to(device)
+model.load_state_dict(torch.load('saved-models/VGG-11-71-best.pth'), True if device == 'cuda' else False)
 # model = resnet18(pretrained=True).to(device)
 
 # Initialize FullGrad objects

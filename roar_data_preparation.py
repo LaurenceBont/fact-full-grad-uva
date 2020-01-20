@@ -33,18 +33,20 @@ def create_data_dirs(percentages):
         directory = f'dataset/cifar-100-adjusted/cifar-100-{percentage*100}%-removed' 
         create_cifar_dir(directory)
 
-def create_adjusted_image_and_save(ks, percentages):
+def create_adjusted_image_and_save(cam, ks, percentages):
     """
         Creates adjusted images based on different K's, and saves them.
-
+        
+        cam         : Salience map of most important pixels.
         ks          : amount of pixels which are adjusted within the image.
         percentages : the percentages of pixels which are adjusted, used to save images in correct
                       directories.
     """
+    sal_map = cam.squeeze()
+
     for k, percentage in zip(ks, percentages): 
 
-            # Get unnormalized image and heat map.
-            sal_map = cam.squeeze()
+            # Get unnormalized image
             image = unnormalize(data.squeeze())
 
             # Get k indices and replace within image
@@ -78,7 +80,7 @@ def get_salience_based_adjusted_data(sample_loader, ks, percentages, dataset = "
         cam, _ = fullgrad.saliency(data)
 
         # Find most important pixels, replace and save adjusted image.
-        create_adjusted_image_and_save(ks, percentages)
+        create_adjusted_image_and_save(cam, sks, percentages)
 
 
 if __name__ == "__main__":
@@ -119,16 +121,15 @@ if __name__ == "__main__":
     total_pixels = sample_img.shape[2] * sample_img.shape[3]
 
     # Calculate k's based on percentages and total pixels
-    percentages = [0.001, 0.005, 0.008, 0.01, 0.03, 0.05, 0.08, 0.1]
+    percentages = [0.1, 0.3, 0.5, 0.7, 0.9]
     Ks = [round((k * total_pixels)) for k in percentages]
 
     # Load or train model
-    if os.path.exists('saved-models/vgg11-60-best.pth'):
+    model = vgg11(pretrained=False, im_size = sample_img.shape, num_classes=config.num_classes, class_size=512).to(device)
+    if os.path.exists('saved-models/VGG-11-71-best.pth'):
         print("The model will now be loaded.")
-        model.load_state_dict(torch.load('saved-models/vgg11-60-best.pth'), True if device == 'cuda' else False)
+        model.load_state_dict(torch.load('saved-models/VGG-11-71-best.pth'), True if device == 'cuda' else False)
     else:
-        model = vgg11(pretrained=False, im_size = sample_img.shape, num_classes=config.num_classes, class_size=512).to(device)
-
         # Train model on cifar-100
         print("The model will now be trained.")
         criterion = nn.CrossEntropyLoss()
