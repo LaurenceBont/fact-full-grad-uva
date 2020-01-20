@@ -59,13 +59,13 @@ def parse_epoch(dataloader, model, optimizer, criterion, device, train=True):
     return correct/total
 
 def train(model, criterion, optimizer, scheduler, trainloader, testloader, device,
-        checkpoint_path, model_name, save_epochs):
+        checkpoint_path, model_name, save_epochs, epochs=200):
     '''
         This function trains the model that is passed in the first argument,
         using the arguments used afterwards.
     '''
     best_acc = 0.0
-    for epoch in range(0, config.epochs):
+    for epoch in range(0, epochs):
         # print(optimizer)
         print("epoch: ", epoch)
         parse_epoch(trainloader, model, optimizer, criterion, device)
@@ -107,7 +107,7 @@ if __name__ == "__main__":
     parser.add_argument('--save_model', type=bool, default=True, help="If set to false the model wont be saved.")
     parser.add_argument('--data_dir', type=str, default=PATH + 'dataset', help="data dir for dataloader")
     parser.add_argument('--dataset_name', type=str, default='/cifar10-imagefolder', help= "Name of dataset contained in the data_dir")
-    parser.add_argument('--checkpoint_path', type=str, default=PATH + 'saved-models/', help="model saving dir.")
+    parser.add_argument('--checkpoint_path', type=str, default=PATH + 'saved-models/vgg-16', help="model saving dir.")
     parser.add_argument('--dataset', type=str, default='cifar10', help="Select cifar10 or cifar100 dataset")
 
     config = parser.parse_args()

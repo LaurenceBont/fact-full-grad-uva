@@ -10,16 +10,16 @@ import torch.nn as nn
 import torch.nn.functional as F
 from math import isclose
 
-cuda = torch.cuda.is_available()
-device = torch.device("cuda" if cuda else "cpu")
+
 class FullGrad():
     """
     Compute FullGrad saliency map and full gradient decomposition 
     """
 
-    def __init__(self, model, im_size = (3,224,224) ):
+    def __init__(self, model, im_size = (3,224,224), device=torch.device('cuda:0')):
         self.model = model
         self.im_size = (1,) + im_size
+        self.device = device
         self.model.eval()
         self.blockwise_biases = self.model.getBiases()
         self.checkCompleteness()
@@ -38,7 +38,7 @@ class FullGrad():
         """
 
         #Random input image
-        input = torch.randn(self.im_size).to(device)
+        input = torch.randn(self.im_size).to(self.device)
 
         # Get raw outputs
         self.model.eval()
