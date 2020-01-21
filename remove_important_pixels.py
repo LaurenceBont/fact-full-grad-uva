@@ -45,10 +45,15 @@ sample_loader = torch.utils.data.DataLoader(
 """
 
 # Dataset loader for sample images
-train_loader = load_cifar_data(1, CIFAR_100_TRANSFORM_TRAIN,
-                                True, 2, data_dir, '/cifar-100-imageFolder', train=True)
-test_loader = load_cifar_data(1, CIFAR_100_TRANSFORM_TEST,
-                                False, 2, data_dir, '/cifar-100-imageFolder', train=False)
+batch_size = 1
+shuffle = True
+num_workers = 2
+dataset_name = '/cifar10-imagefolder'
+name = 'cifar10'
+train_loader = load_data(batch_size, CIFAR_10_TRANSFORM, shuffle, num_workers, data_dir, dataset_name, 
+                            train=True, name=name)
+test_loader = load_data(batch_size, CIFAR_10_TRANSFORM, shuffle, num_workers, data_dir, dataset_name, 
+                            train=False, name=name)
 
 
 transform_image = transforms.ToPILImage()
@@ -57,17 +62,15 @@ normalize = transforms.Normalize(mean = [0.485, 0.456, 0.406],
 unnormalize = NormalizeInverse(mean = [0.485, 0.456, 0.406],
                                  std = [0.229, 0.224, 0.225])
 
-
 # uncomment to use VGG
 print("The model will now be loaded.")
 sample_img = next(iter(train_loader))[0]
-model = vgg11(pretrained=False, im_size = sample_img.shape, num_classes=100, class_size=512).to(device)
-model.load_state_dict(torch.load('saved-models/VGG-11-71-best.pth', map_location=torch.device('cpu')), True if device == 'cuda' else False)
+model = vgg11(pretrained=False, im_size = sample_img.shape, device = device, num_classes=10, class_size=512).to(device)
+model.load_state_dict(torch.load('saved-models/VGG-11-71-best.pth', map_location=device), True if device == 'cuda' else False)
 # model = resnet18(pretrained=True).to(device)
 
 # Initialize FullGrad objects
-fullgrad = FullGrad(model)
-simple_fullgrad = SimpleFullGrad(model)
+fullgrad = FullGrad(model, im_size = sample_img.shape, device = device)
 
 save_path = PATH + 'results/'
 
@@ -75,7 +78,7 @@ save_path = PATH + 'results/'
 def compute_saliency_and_save(k, method):
     former_outputs, new_images, image_counter = [], [], 0
 
-    for batch_idx, (data, target) in enumerate(sample_loader):
+    for batch_idx, (data, target) in enumerate(test_loader):
         data, target = data.to(device).requires_grad_(), target.to(device)
 
         # Compute saliency maps for the input data.
