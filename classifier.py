@@ -16,6 +16,7 @@ import torch.optim as optim
 import os
 import argparse
 from models.vgg import vgg11
+from models.resnet import resnet50
 from utils import prepare_data, load_data, CIFAR_100_TRANSFORM_TRAIN, CIFAR_100_TRANSFORM_TEST, CIFAR_10_TRANSFORM
 
 
@@ -44,7 +45,7 @@ def parse_epoch(dataloader, model, optimizer, criterion, device, train=True):
             total += target.size(0)
             correct += predicted.eq(target).sum().item()
 
-            print('batch: %d | Loss: %.3f | Acc: %.3f' % (batch_idx, losses/(batch_idx+1), 100.*correct/total))
+            print('batch: %d | Loss: %.3f | Acc: %.3f' % (batch_idx, loss.item(), 100.*predicted.eq(target).sum().item()/target.size(0)))
         else: 
             with torch.no_grad():
                 outputs = model(data)
@@ -55,7 +56,8 @@ def parse_epoch(dataloader, model, optimizer, criterion, device, train=True):
                 total += target.size(0)
                 correct += predicted.eq(target).sum().item()
 
-                print('batch: %d | Loss: %.3f | Acc: %.3f' % (batch_idx, losses/(batch_idx+1), 100.*correct/total))
+                print('batch: %d | Loss: %.3f | Acc: %.3f' % (batch_idx, loss.item(), 100.*predicted.eq(target).sum().item()/target.size(0)))
+    print("total_batches: %d | total loss: %.3f | epoch Acc: %.3f" % (batch_idx, losses/(batch_idx+1), 100.*correct/total))
     return correct/total
 
 def train(model, criterion, optimizer, scheduler, trainloader, testloader, device,
@@ -118,6 +120,8 @@ if __name__ == "__main__":
     device = torch.device(config.device)
 
     model = vgg11(pretrained=False, num_classes=config.num_classes, class_size=512).to(device)
+    model = resnet50(pretrained=False, num_classes=config.num_classes).to(device)
+
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=config.learning_rate, momentum=0.9, nesterov=True, weight_decay=5e-4)
