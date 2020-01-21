@@ -66,8 +66,6 @@ def train(model, criterion, optimizer, scheduler, trainloader, testloader, devic
     '''
     best_acc = 0.0
     for epoch in range(0, epochs):
-        # print(optimizer)
-        print("epoch: ", epoch)
         parse_epoch(trainloader, model, optimizer, criterion, device)
         torch.cuda.empty_cache()
         scheduler.step()
@@ -136,4 +134,4 @@ if __name__ == "__main__":
             config.load_model, config.save_epochs)        
     else:
         train(model, criterion, optimizer, scheduler, trainloader, testloader, device,
-            config.checkpoint_path, config.model_name, config.save_epochs)
+            config.checkpoint_path, config.model_name, config.epochs, config.save_epochs)
