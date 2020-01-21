@@ -22,18 +22,21 @@ normalize = transforms.Normalize(mean = [0.485, 0.456, 0.406],
 unnormalize = NormalizeInverse(mean = [0.485, 0.456, 0.406],
                                  std = [0.229, 0.224, 0.225])
 
-def create_data_dirs(percentages):
+def create_data_dirs(percentages, num_classes):
     """
         Creates directories to save adjusted images.
 
         percentages : the percentages of pixels which are adjusted, used to create
                         convenient directory names.
     """
-    for percentage in percentages:
-        directory = f'dataset/cifar-100-adjusted/cifar-100-{percentage*100}%-removed' 
-        create_cifar_dir(directory)
+    
+    os.mkdir(f'dataset/cifar-{num_classes}-adjusted')
 
-def create_adjusted_image_and_save(cam, ks, percentages):
+    for percentage in percentages:
+        directory = f'dataset/cifar-{num_classes}-adjusted/cifar-{num_classes}-{percentage*100}%-removed' 
+        create_imagefolder_dir(directory, num_classes)
+
+def create_adjusted_images_and_save(idx, data, cam, target, ks, percentages, num_classes, dataset, method = "roar", approach = "zero"):
     """
         Creates adjusted images based on different K's, and saves them.
         
@@ -54,11 +57,11 @@ def create_adjusted_image_and_save(cam, ks, percentages):
             new_image = replace_pixels(image, indices, approach = approach)
 
             # Save adjusted images
-            data_dir = f'dataset/cifar-100-adjusted/cifar-100-{percentage*100}%-removed'
-            save_cifar_image(data_dir, target, new_image, "cifar-100", dataset)
+            data_dir = f'dataset/cifar-{num_classes}-adjusted/cifar-{num_classes}-{percentage*100}%-removed'
+            save_imagefolder_image(data_dir, target, new_image, idx, dataset)
 
 
-def get_salience_based_adjusted_data(sample_loader, ks, percentages, dataset = "train"):
+def get_salience_based_adjusted_data(sample_loader, ks, percentages, num_classes = 10, dataset = "train"):
     """
         Creates adjusted images based on different K's, and saves them.
         
@@ -68,19 +71,20 @@ def get_salience_based_adjusted_data(sample_loader, ks, percentages, dataset = "
                        directories.
         dataset      : Used to define which set is used.  
     """
-    image_counter = 0
-    method = "roar"
-    approach = "zero"
-    create_data_dirs(percentages)
 
-    for data, target in sample_loader:
+    # Creates data directories if needed.
+    if not os.path.exists(f'dataset/cifar-{num_classes}-adjusted'):
+        create_data_dirs(percentages, num_classes)
+
+    # Loops over sample loader to creates per sample every adjusted image, and saves them.
+    for idx, (data, target) in enumerate(sample_loader):
         data, target = data.to(device).requires_grad_(), target.to(device)
 
         # Compute saliency maps for the input data.
-        cam, _ = fullgrad.saliency(data)
+        _, cam, _ = fullgrad.saliency(data)
 
         # Find most important pixels, replace and save adjusted image.
-        create_adjusted_image_and_save(cam, sks, percentages)
+        create_adjusted_images_and_save(idx, data, cam, target, ks, percentages, num_classes, dataset)
 
 
 if __name__ == "__main__":
@@ -90,8 +94,8 @@ if __name__ == "__main__":
 
     # Model params
     parser.add_argument('--model_name', type=str, default="VGG-11", help="Name of the model when saved")
-    parser.add_argument('--num_classes', type=int, default=100, help='Dimensionality of output sequence')
-    parser.add_argument('--batch_size', type=int, default=128, help='Number of examples to process in a batch')
+    parser.add_argument('--num_classes', type=int, default=10, help='Dimensionality of output sequence')
+    parser.add_argument('--batch_size', type=int, default=1, help='Number of examples to process in a batch')
     parser.add_argument('--epochs', type=int, default=200, help='Number of epochs until break')
     parser.add_argument('--load_model', type=str, default='', help='Give location of weights to load model')
     parser.add_argument('--save_epochs', type=int, default=1, help="save model after epochs")
@@ -99,8 +103,10 @@ if __name__ == "__main__":
     parser.add_argument('--device', type=str, default="cuda:0", help="Training device 'cpu' or 'cuda'")
     parser.add_argument('--save_model', type=bool, default=True, help="If set to false the model wont be saved.")
     parser.add_argument('--data_dir', type=str, default=PATH + 'dataset', help="data dir for dataloader")
-    parser.add_argument('--dataset_name', type=str, default='/cifar-100-imageFolder', help= "Name of dataset contained in the data_dir")
-    parser.add_argument('--checkpoint_path', type=str, default=PATH + 'saved-models/', help="model saving dir.")
+    parser.add_argument('--dataset_name', type=str, default='/cifar10-imagefolder', help= "Name of dataset contained in the data_dir")
+    parser.add_argument('--checkpoint_path', type=str, default=PATH + 'saved-models/vgg-11', help="model saving dir.")
+    parser.add_argument('--dataset', type=str, default='cifar10', help="Select cifar10 or cifar100 dataset")
+
     config = parser.parse_args()
 
     if not os.path.exists(config.checkpoint_path):
@@ -110,10 +116,16 @@ if __name__ == "__main__":
     device = torch.device(config.device)
 
     # Create dataloaders
-    train_loader = load_cifar_data(1, CIFAR_100_TRANSFORM_TRAIN,
-                                True, 2, config.data_dir, config.dataset_name, train=True)
-    test_loader = load_cifar_data(1, CIFAR_100_TRANSFORM_TEST,
-                                False, 2, config.data_dir, config.dataset_name, train=False)
+    shuffle = True
+    if config.num_classes == 10:
+        transform = [CIFAR_10_TRANSFORM, CIFAR_10_TRANSFORM]
+    else:
+        transform = [CIFAR_100_TRANSFORM_TRAIN, CIFAR_100_TRANSFORM_TEST]
+
+    train_loader = load_data(config.batch_size, transform[0], True, 2, config.data_dir, 
+                                config.dataset_name, train=True, name=config.dataset)
+    test_loader = load_data(config.batch_size, transform[1], False, 2, config.data_dir, 
+                                config.dataset_name, train=False, name=config.dataset)
 
     
     # Get sample and total pixels 
@@ -141,9 +153,9 @@ if __name__ == "__main__":
             config.checkpoint_path, config.model_name, config.epochs, config.save_epochs)
 
     # Initialize FullGrad objects
-    fullgrad = FullGrad(model, im_size = sample_img.squeeze().shape)
+    fullgrad = FullGrad(model, im_size = sample_img.shape, device = device)
 
     # Create ROAR images
     print("The adjusted data will now be created.")
-    get_salience_based_adjusted_data(train_loader, Ks, percentages, "train")
-    get_salience_based_adjusted_data(test_loader, Ks, percentages, "test")
+    get_salience_based_adjusted_data(train_loader, Ks, percentages, dataset = "train")
+    get_salience_based_adjusted_data(test_loader, Ks, percentages, dataset = "test")

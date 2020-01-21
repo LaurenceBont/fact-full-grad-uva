@@ -37,7 +37,7 @@ cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
 
 
-def experiment(criterion, optimizer, scheduler, cfg, percentages = [0.10, 0.33, 0.66, 0.99]):
+def experiment(criterion, optimizer, scheduler, cfg, percentages = [0.1, 0.3, 0.5, 0.7, 0.9]):
     
     # If adjusted data is not created, create it. 
     if not os.path.exists('dataset/cifar-100-adjusted'):
@@ -51,18 +51,23 @@ def experiment(criterion, optimizer, scheduler, cfg, percentages = [0.10, 0.33, 
     plt.plot(percentages, accuracy_list, marker = 'o')
     plt.show()
 
-def do_experiment(model, criterion, optimizer, scheduler, percentages, cfg):
+def do_experiment(model, criterion, optimizer, scheduler, percentages, cfg, num_classes = 10):
     accuracy_list = []
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=cfg.learning_rate)
 
+    if num_classes == 10:
+        transform = [CIFAR_10_TRANSFORM, CIFAR_10_TRANSFORM]
+    else:
+        transform = [CIFAR_100_TRANSFORM_TRAIN, CIFAR_100_TRANSFORM_TEST]
+
     for percentage in percentages:
         copied_model = copy.deepcopy(model)
 
-        data_dir = f"dataset/cifar-100-adjusted/cifar-100-{percentage}%-removed/"
-        adjusted_train_data = load_imageFolder_data(cfg.batch_size, CIFAR_100_TRANSFORM_TRAIN, cfg.shuffle, cfg.num_workers, data_dir + "train")
-        adjusted_test_data = load_imageFolder_data(cfg.batch_size, CIFAR_100_TRANSFORM_TEST, cfg.shuffle, cfg.num_workers, data_dir + "test")
+        data_dir = f"dataset/cifar-100-adjusted/cifar-{num_classes}-{percentage}%-removed/"
+        adjusted_train_data = load_imageFolder_data(cfg.batch_size, transform[0], cfg.shuffle, cfg.num_workers, data_dir + "train")
+        adjusted_test_data = load_imageFolder_data(cfg.batch_size, transform[1], cfg.shuffle, cfg.num_workers, data_dir + "test")
         
         train(copied_model, criterion, optimizer, scheduler, adjusted_train_data, adjusted_test_data, device,
         checkpoint_path, model_name, epochs, save_epochs)
@@ -85,7 +90,7 @@ if __name__ == "__main__":
     parser.add_argument('--device', type=str, default="cuda:0", help="Training device 'cpu' or 'cuda'")
     parser.add_argument('--save_model', type=bool, default=True, help="If set to false the model wont be saved.")
     parser.add_argument('--data_dir', type=str, default=PATH + 'dataset', help="data dir for dataloader")
-    parser.add_argument('--dataset_name', type=str, default='/cifar-100-imageFolder', help= "Name of dataset contained in the data_dir")
+    parser.add_argument('--dataset_name', type=str, default='/cifar-10-imageFolder', help= "Name of dataset contained in the data_dir")
     parser.add_argument('--checkpoint_path', type=str, default=PATH + 'saved-models/', help="model saving dir.")
 
     config = parser.parse_args()
