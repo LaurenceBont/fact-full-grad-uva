@@ -33,6 +33,7 @@ cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
 
 # Dataset loader for sample images
+"""
 sample_loader = torch.utils.data.DataLoader(
     datasets.ImageFolder(data_dir, transform=transforms.Compose([
                        transforms.Resize((224,224)),
@@ -41,6 +42,7 @@ sample_loader = torch.utils.data.DataLoader(
                                         std = [0.229, 0.224, 0.225])
                    ])),
     batch_size= batch_size, shuffle=False)
+"""
 
 # Dataset loader for sample images
 train_loader = load_cifar_data(1, CIFAR_100_TRANSFORM_TRAIN,
@@ -58,8 +60,9 @@ unnormalize = NormalizeInverse(mean = [0.485, 0.456, 0.406],
 
 # uncomment to use VGG
 print("The model will now be loaded.")
-model = vgg11(pretrained=False, im_size = sample_img.shape, num_classes=config.num_classes, class_size=512).to(device)
-model.load_state_dict(torch.load('saved-models/VGG-11-71-best.pth'), True if device == 'cuda' else False)
+sample_img = next(iter(train_loader))[0]
+model = vgg11(pretrained=False, im_size = sample_img.shape, num_classes=100, class_size=512).to(device)
+model.load_state_dict(torch.load('saved-models/VGG-11-71-best.pth', map_location=torch.device('cpu')), True if device == 'cuda' else False)
 # model = resnet18(pretrained=True).to(device)
 
 # Initialize FullGrad objects

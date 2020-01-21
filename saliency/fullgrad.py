@@ -104,6 +104,7 @@ class FullGrad():
         
         # Input-gradient * image
         grd = input_grad[0] * image
+        input_grad = self._postProcess(grd).sum(1, keepdim=True)
         gradient = self._postProcess(grd).sum(1, keepdim=True)
         cam = gradient
 
@@ -120,5 +121,5 @@ class FullGrad():
                     gradient = F.interpolate(temp, size=(im_size[2], im_size[3]), mode = 'bilinear', align_corners=False) 
                 cam += gradient.sum(1, keepdim=True)
 
-        return cam, out
+        return abs(input_grad), cam, out
         

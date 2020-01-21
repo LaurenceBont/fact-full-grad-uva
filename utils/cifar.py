@@ -50,7 +50,7 @@ def save_cifar_image(data_dir, label, image, name, dataset):
     """
         This function saves a single cifar image in the correct format.
         data_dir: the root dataset directory, 
-        name: the name of the dataset
+        name: the name of the image
         dataset: either train or test
         label: the class of the image
         image: the image to be saved
@@ -91,7 +91,7 @@ def prepare_cifar_data(load_dir, save_dir):
 
             save_cifar_data(save_dir, dataloader, batch_size, '/train' if train else '/test')
     else:
-        print("Directory already exists, images will not be overriden. \
+        print("Directory already exists, images will not be overwritten. \
                 Please provide an empty directory, or use this dataset")
     
 

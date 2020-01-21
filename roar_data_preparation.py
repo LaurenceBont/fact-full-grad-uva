@@ -125,10 +125,11 @@ if __name__ == "__main__":
     Ks = [round((k * total_pixels)) for k in percentages]
 
     # Load or train model
-    model = vgg11(pretrained=False, im_size = sample_img.shape, num_classes=config.num_classes, class_size=512).to(device)
+    model = vgg11(pretrained=False, device=device, im_size = sample_img.shape, num_classes=config.num_classes, class_size=512).to(device)
     if os.path.exists('saved-models/VGG-11-71-best.pth'):
         print("The model will now be loaded.")
-        model.load_state_dict(torch.load('saved-models/VGG-11-71-best.pth'), True if device == 'cuda' else False)
+        print(True if device == 'cuda' else False)
+        model.load_state_dict(torch.load('saved-models/VGG-11-71-best.pth', map_location=torch.device('cpu')), True if device == 'cuda' else False)
     else:
         # Train model on cifar-100
         print("The model will now be trained.")
