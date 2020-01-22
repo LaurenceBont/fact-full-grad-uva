@@ -1,5 +1,3 @@
-
-
 """
     This file contains all utility functions for reading and saving Cifar100 datasets.
 """
