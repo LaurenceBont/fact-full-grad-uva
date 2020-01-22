@@ -53,7 +53,7 @@ def create_adjusted_images_and_save(idx, data, cam, target, ks, percentages, num
             image = unnormalize(data.squeeze())
 
             # Get k indices and replace within image
-            indices = return_k_index_argsort(sal_map.detach().numpy(), k, method)
+            indices = return_k_index_argsort(sal_map.cpu().detach().numpy(), k, method)
             new_image = replace_pixels(image, indices, approach = approach)
 
             # Save adjusted images
