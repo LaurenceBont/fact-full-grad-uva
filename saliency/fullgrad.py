@@ -18,7 +18,7 @@ class FullGrad():
 
     def __init__(self, model, im_size = (3,224,224), device=torch.device('cuda:0')):
         self.model = model
-        self.im_size = (1,) + im_size
+        self.im_size = im_size
         self.device = device
         self.model.eval()
         self.blockwise_biases = self.model.getBiases()
