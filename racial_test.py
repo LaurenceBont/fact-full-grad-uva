@@ -15,6 +15,7 @@ import torch.optim as optim
 import os
 import argparse
 from models.vgg import vgg11, vgg16, vgg19
+from models.resnet import resnet50
 from utils import prepare_data, load_data, CIFAR_100_TRANSFORM_TRAIN, CIFAR_100_TRANSFORM_TEST, CIFAR_10_TRANSFORM, load_imageFolder_data
 from classifier import train
 
@@ -26,7 +27,7 @@ if __name__ == "__main__":
     # Model params
     parser.add_argument('--model_name', type=str, default="VGG-11", help="Name of the model when saved")
     parser.add_argument('--num_classes', type=int, default=2, help='Dimensionality of output sequence')
-    parser.add_argument('--batch_size', type=int, default=128, help='Number of examples to process in a batch')
+    parser.add_argument('--batch_size', type=int, default=1024, help='Number of examples to process in a batch')
     parser.add_argument('--epochs', type=int, default=200, help='Number of epochs until break')
     parser.add_argument('--load_model', type=str, default='', help='Give location of weights to load model')
     parser.add_argument('--save_epochs', type=int, default=1, help="save model after epochs")
@@ -47,10 +48,13 @@ if __name__ == "__main__":
 
     device = torch.device(config.device)
 
-    model = vgg16(pretrained=False, device=device, num_classes=config.num_classes, class_size=512).to(device)
+    # model = vgg16(pretrained=False, device=device, num_classes=config.num_classes, class_size=512 * 2 * 2).to(device)
+
+    model = resnet50(num_classes=2).to(device)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=config.learning_rate, momentum=0.9, nesterov=True, weight_decay=5e-4)
+    # optimizer = optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0, amsgrad=False)
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 120, 160, 200], gamma=0.2)
 
     num_workers = 1
@@ -58,7 +62,7 @@ if __name__ == "__main__":
     train_dir = PATH + 'dataset/extra_experiment/train'
 
     transform = transforms.Compose(
-        [transforms.Resize((32,32)),
+        [transforms.Resize((64,64)),
         transforms.ToTensor(),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
