@@ -10,7 +10,7 @@ import torch
 
 from torchvision import datasets, transforms, utils
 import torch.optim as optim
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import numpy as np
 import argparse
 import copy
@@ -47,10 +47,10 @@ def experiment(criterion, optimizer, scheduler, cfg, percentages = [0.1, 0.3, 0.
 
     # Train model based on certrain adjusted data
     accuracy_list = perform_experiment(model, criterion, optimizer, scheduler, percentages, cfg)
-
-    # Create plot
-    plt.plot(percentages, accuracy_list, marker = 'o')
-    plt.show()
+    print(accuracy_list)
+    # # Create plot
+    # plt.plot(percentages, accuracy_list, marker = 'o')
+    # plt.show()
 
 def create_data(percentages, cfg):
     # Create train and test dataloader
@@ -95,6 +95,8 @@ def perform_experiment(model, criterion, optimizer, scheduler, percentages, cfg,
 
         accuracy_list.append(parse_epoch(adjusted_test_data, model_k_data, None, criterion, device, train=False))
 
+    return accuracy_list
+
 if __name__ == "__main__":
     PATH = os.path.dirname(os.path.abspath(__file__)) + '/'
     # Parse training configuration
@@ -104,7 +106,7 @@ if __name__ == "__main__":
     parser.add_argument('--model_name', type=str, default="VGG-11", help="Name of the model when saved")
     parser.add_argument('--num_classes', type=int, default=100, help='Dimensionality of output sequence')
     parser.add_argument('--batch_size', type=int, default=128, help='Number of examples to process in a batch')
-    parser.add_argument('--epochs', type=int, default=200, help='Number of epochs until break')
+    parser.add_argument('--epochs', type=int, default=80, help='Number of epochs until break')
     parser.add_argument('--load_model', type=str, default='', help='Give location of weights to load model')
     parser.add_argument('--save_epochs', type=int, default=1, help="save model after epochs")
     parser.add_argument('--learning_rate', type=float, default=0.1, help='Learning rate')
@@ -132,6 +134,7 @@ if __name__ == "__main__":
     
     percentages = [0.1, 0.3, 0.5, 0.7, 0.9]
     experiment(criterion, optimizer, scheduler, config, percentages)
+
         
 
 
