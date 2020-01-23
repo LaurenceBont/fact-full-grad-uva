@@ -21,10 +21,11 @@ import cv2
 from saliency.fullgrad import FullGrad
 from saliency.simple_fullgrad import SimpleFullGrad
 from models.vgg import *
-from models.resnet import *
+
 from misc_functions import *
+from classifier import train, parse_epoch
 from roar_data_preparation import get_salience_based_adjusted_data
-from utils import load_imageFolder_data, CIFAR_100_TRANSFORM_TRAIN, CIFAR_100_TRANSFORM_TEST
+from utils import *
 
 # PATH variables
 PATH = os.path.dirname(os.path.abspath(__file__)) + '/'
@@ -40,18 +41,38 @@ device = torch.device("cuda" if cuda else "cpu")
 def experiment(criterion, optimizer, scheduler, cfg, percentages = [0.1, 0.3, 0.5, 0.7, 0.9]):
     
     # If adjusted data is not created, create it. 
-    if not os.path.exists('dataset/cifar-100-adjusted'):
-        get_salience_based_adjusted_data(sample_loader, ks, percentages, dataset = "train")
-        get_salience_based_adjusted_data(sample_loader, ks, percentages, dataset = "test")
+    if not os.path.exists('dataset/cifar-10-adjusted'):
+        print("Adjusted data is missing, so will now be created.")
+        create_data(percentages, cfg)
 
     # Train model based on certrain adjusted data
-    accuracy_list = do_experiment(model, criterion, optimizer, scheduler, percentages, cfg)
+    accuracy_list = perform_experiment(model, criterion, optimizer, scheduler, percentages, cfg)
 
     # Create plot
     plt.plot(percentages, accuracy_list, marker = 'o')
     plt.show()
 
-def do_experiment(model, criterion, optimizer, scheduler, percentages, cfg, num_classes = 10):
+def create_data(percentages, cfg):
+    # Create train and test dataloader
+    shuffle = True
+    if config.num_classes == 10:
+        transform = [CIFAR_10_TRANSFORM, CIFAR_10_TRANSFORM]
+    else:
+        transform = [CIFAR_100_TRANSFORM_TRAIN, CIFAR_100_TRANSFORM_TEST]
+
+    train_loader = load_imageFolder_data(cfg.batch_size, transform[0], True, 2, cfg.data_dir, cfg.dataset_name, 
+                                    train=True, name="cifar-10")
+    test_loader = load_imageFolder_data(cfg.batch_size, transform[1], False, 2, cfg.data_dir, cfg.dataset_name, 
+                                    train=False, name="cifar-10")
+
+    # Get Ks
+    Ks = [round((k * total_pixels)) for k in percentages]
+
+    # Get adjusted data
+    get_salience_based_adjusted_data(train_loader, ks, percentages, dataset = "train")
+    get_salience_based_adjusted_data(test_loader, ks, percentages, dataset = "test")
+
+def perform_experiment(model, criterion, optimizer, scheduler, percentages, cfg, num_classes = 10):
     accuracy_list = []
 
     criterion = nn.CrossEntropyLoss()
@@ -65,12 +86,12 @@ def do_experiment(model, criterion, optimizer, scheduler, percentages, cfg, num_
     for percentage in percentages:
         copied_model = copy.deepcopy(model)
 
-        data_dir = f"dataset/cifar-100-adjusted/cifar-{num_classes}-{percentage}%-removed/"
-        adjusted_train_data = load_imageFolder_data(cfg.batch_size, transform[0], cfg.shuffle, cfg.num_workers, data_dir + "train")
-        adjusted_test_data = load_imageFolder_data(cfg.batch_size, transform[1], cfg.shuffle, cfg.num_workers, data_dir + "test")
+        data_dir = f"dataset/cifar-10-adjusted/cifar-{num_classes}-{percentage*100}%-removed/"
+        adjusted_train_data = load_imageFolder_data(cfg.batch_size, transform[0], True, cfg.num_workers, data_dir + "train")
+        adjusted_test_data = load_imageFolder_data(cfg.batch_size, transform[1], True, cfg.num_workers, data_dir + "test")
         
         train(copied_model, criterion, optimizer, scheduler, adjusted_train_data, adjusted_test_data, device,
-        checkpoint_path, model_name, epochs, save_epochs)
+        cfg.checkpoint_path, f"roar-{percentage*100}", cfg.epochs, cfg.save_epochs)
 
         accuracy_list.append(parse_epoch(adjusted_test_data, model_k_data, None, criterion, device, train=False))
 
@@ -87,11 +108,12 @@ if __name__ == "__main__":
     parser.add_argument('--load_model', type=str, default='', help='Give location of weights to load model')
     parser.add_argument('--save_epochs', type=int, default=1, help="save model after epochs")
     parser.add_argument('--learning_rate', type=float, default=0.1, help='Learning rate')
+    parser.add_argument('--num_workers', type=int, default=2, help='The amount of workers used to load data.')
     parser.add_argument('--device', type=str, default="cuda:0", help="Training device 'cpu' or 'cuda'")
     parser.add_argument('--save_model', type=bool, default=True, help="If set to false the model wont be saved.")
     parser.add_argument('--data_dir', type=str, default=PATH + 'dataset', help="data dir for dataloader")
     parser.add_argument('--dataset_name', type=str, default='/cifar-10-imageFolder', help= "Name of dataset contained in the data_dir")
-    parser.add_argument('--checkpoint_path', type=str, default=PATH + 'saved-models/', help="model saving dir.")
+    parser.add_argument('--checkpoint_path', type=str, default=PATH + 'saved-models/roar-models', help="model saving dir.")
 
     config = parser.parse_args()
 
@@ -108,7 +130,7 @@ if __name__ == "__main__":
     optimizer = optim.SGD(model.parameters(), lr=config.learning_rate, momentum=0.9, nesterov=True)
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 120, 160, 200], gamma=0.2)
     
-    percentages = [0.10, 0.33, 0.66, 0.99]
+    percentages = [0.1, 0.3, 0.5, 0.7, 0.9]
     experiment(criterion, optimizer, scheduler, config, percentages)
         
 
