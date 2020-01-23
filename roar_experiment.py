@@ -84,6 +84,7 @@ def perform_experiment(model, criterion, optimizer, scheduler, percentages, cfg,
         transform = [CIFAR_100_TRANSFORM_TRAIN, CIFAR_100_TRANSFORM_TEST]
 
     for percentage in percentages:
+        print(f"Training of model based on {percentage*100}% deletion of pixels.")
         copied_model = copy.deepcopy(model)
 
         data_dir = f"dataset/cifar-10-adjusted/cifar-{num_classes}-{percentage*100}%-removed/"
