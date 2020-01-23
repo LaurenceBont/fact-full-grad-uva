@@ -94,7 +94,10 @@ def perform_experiment(model, criterion, optimizer, scheduler, percentages, cfg,
         train(copied_model, criterion, optimizer, scheduler, adjusted_train_data, adjusted_test_data, device,
         cfg.checkpoint_path, f"roar-{percentage*100}", cfg.epochs, cfg.save_epochs)
 
-        accuracy_list.append(parse_epoch(adjusted_test_data, model_k_data, None, criterion, device, train=False))
+        eval_accuracy = parse_epoch(adjusted_test_data, copied_model, None, criterion, device, train=False)
+        accuracy_list.append(eval_accuracy)
+        print("Eval accur:", eval_accuracy)
+        print("----------------------------------------------")
 
     return accuracy_list
 
