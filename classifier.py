@@ -74,10 +74,7 @@ def train(model, criterion, optimizer, scheduler, trainloader, testloader, devic
         if accuracy > best_acc:
             torch.save(model.state_dict(), checkpoint_path.format(model=model_name, epoch=epoch, type='best'))
             best_acc = accuracy
-            continue
-
-        if not epoch % save_epochs:
-            torch.save(model.state_dict(), checkpoint_path.format(model=model_name, epoch=epoch, type='normal'))    
+            continue  
             
 def eval(model, criterion, optimizer, trainloader, testloader, device,
             load_model, save_epochs):
