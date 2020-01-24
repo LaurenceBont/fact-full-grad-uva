@@ -75,9 +75,6 @@ def create_data(percentages, cfg):
 def perform_experiment(model, criterion, optimizer, scheduler, percentages, cfg, num_classes = 10):
     accuracy_list = []
 
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=cfg.learning_rate)
-
     if num_classes == 10:
         transform = [CIFAR_10_TRANSFORM, CIFAR_10_TRANSFORM]
     else:
@@ -85,7 +82,11 @@ def perform_experiment(model, criterion, optimizer, scheduler, percentages, cfg,
 
     for percentage in percentages:
         print(f"Training of model based on {percentage*100}% deletion of pixels.")
-        copied_model = copy.deepcopy(model)
+        model = vgg11(pretrained=False, im_size = (3, 32, 32), num_classes=config.num_classes, class_size=512).to(device)
+
+        criterion = nn.CrossEntropyLoss()
+        optimizer = optim.SGD(model.parameters(), lr=config.learning_rate, momentum=0.9, nesterov=True)
+        scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 120, 160, 200], gamma=0.2)
 
         data_dir = f"dataset/cifar-10-adjusted/cifar-{num_classes}-{percentage*100}%-removed/"
         adjusted_train_data = load_imageFolder_data(cfg.batch_size, transform[0], True, cfg.num_workers, data_dir + "train")
@@ -129,12 +130,6 @@ if __name__ == "__main__":
 
 
     device = torch.device(config.device)
-
-    model = vgg11(pretrained=False, im_size = (3, 32, 32), num_classes=config.num_classes, class_size=512).to(device)
-
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(model.parameters(), lr=config.learning_rate, momentum=0.9, nesterov=True)
-    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 120, 160, 200], gamma=0.2)
     
     percentages = [0.1, 0.3, 0.5, 0.7, 0.9]
     experiment(criterion, optimizer, scheduler, config, percentages)
