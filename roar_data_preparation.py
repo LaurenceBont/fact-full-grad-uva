@@ -75,7 +75,7 @@ def get_salience_based_adjusted_data(sample_loader, ks, percentages, num_classes
     # Creates data directories if needed.
     if not os.path.exists(f'dataset/cifar-{num_classes}-adjusted'):
         create_data_dirs(percentages, num_classes)
-    else:
+
         # Loops over sample loader to creates per sample every adjusted image, and saves them.
         for idx, (data, target) in enumerate(sample_loader):
             data, target = data.to(device).requires_grad_(), target.to(device)
@@ -114,7 +114,6 @@ if __name__ == "__main__":
     config.checkpoint_path = os.path.join(config.checkpoint_path, '{model}-{epoch}-{type}.pth')
 
     device = torch.device(config.device)
-    print(device)
 
     # Create dataloaders
     shuffle = True
