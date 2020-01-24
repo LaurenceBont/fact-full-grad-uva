@@ -73,18 +73,21 @@ def get_salience_based_adjusted_data(sample_loader, ks, percentages, num_classes
     """
 
     # Creates data directories if needed.
-    if not os.path.exists(f'dataset/cifar-{num_classes}-adjusted'):
+    if not os.path.exists(f'dataset/cifar-{num_classes}-adjusted/cifar-10-10.0%-removed/{dataset}'):
         create_data_dirs(percentages, num_classes)
+    else:
+        print("Dataset already created!")
 
-        # Loops over sample loader to creates per sample every adjusted image, and saves them.
-        for idx, (data, target) in enumerate(sample_loader):
-            data, target = data.to(device).requires_grad_(), target.to(device)
 
-            # Compute saliency maps for the input data.
-            _, cam, _ = fullgrad.saliency(data)
+    # Loops over sample loader to creates per sample every adjusted image, and saves them.
+    for idx, (data, target) in enumerate(sample_loader):
+        data, target = data.to(device).requires_grad_(), target.to(device)
 
-            # Find most important pixels, replace and save adjusted image.
-            create_adjusted_images_and_save(idx, data, cam, target, ks, percentages, num_classes, dataset)
+        # Compute saliency maps for the input data.
+        _, cam, _ = fullgrad.saliency(data)
+
+        # Find most important pixels, replace and save adjusted image.
+        create_adjusted_images_and_save(idx, data, cam, target, ks, percentages, num_classes, dataset)
 
 
 if __name__ == "__main__":
