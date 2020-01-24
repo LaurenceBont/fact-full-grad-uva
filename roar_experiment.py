@@ -72,7 +72,7 @@ def create_data(percentages, cfg):
     get_salience_based_adjusted_data(train_loader, ks, percentages, dataset = "train")
     get_salience_based_adjusted_data(test_loader, ks, percentages, dataset = "test")
 
-def perform_experiment(model, criterion, optimizer, scheduler, percentages, cfg, num_classes = 10):
+def perform_experiment(percentages, cfg, num_classes = 10):
     accuracy_list = []
 
     if num_classes == 10:
@@ -132,7 +132,7 @@ if __name__ == "__main__":
     device = torch.device(config.device)
     
     percentages = [0.1, 0.3, 0.5, 0.7, 0.9]
-    experiment(criterion, optimizer, scheduler, config, percentages)
+    experiment(config, percentages)
 
         
 
