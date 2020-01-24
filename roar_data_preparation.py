@@ -75,16 +75,16 @@ def get_salience_based_adjusted_data(sample_loader, ks, percentages, num_classes
     # Creates data directories if needed.
     if not os.path.exists(f'dataset/cifar-{num_classes}-adjusted'):
         create_data_dirs(percentages, num_classes)
+    else:
+        # Loops over sample loader to creates per sample every adjusted image, and saves them.
+        for idx, (data, target) in enumerate(sample_loader):
+            data, target = data.to(device).requires_grad_(), target.to(device)
 
-    # Loops over sample loader to creates per sample every adjusted image, and saves them.
-    for idx, (data, target) in enumerate(sample_loader):
-        data, target = data.to(device).requires_grad_(), target.to(device)
+            # Compute saliency maps for the input data.
+            _, cam, _ = fullgrad.saliency(data)
 
-        # Compute saliency maps for the input data.
-        _, cam, _ = fullgrad.saliency(data)
-
-        # Find most important pixels, replace and save adjusted image.
-        create_adjusted_images_and_save(idx, data, cam, target, ks, percentages, num_classes, dataset)
+            # Find most important pixels, replace and save adjusted image.
+            create_adjusted_images_and_save(idx, data, cam, target, ks, percentages, num_classes, dataset)
 
 
 if __name__ == "__main__":
@@ -114,6 +114,7 @@ if __name__ == "__main__":
     config.checkpoint_path = os.path.join(config.checkpoint_path, '{model}-{epoch}-{type}.pth')
 
     device = torch.device(config.device)
+    print(device)
 
     # Create dataloaders
     shuffle = True
@@ -136,14 +137,13 @@ if __name__ == "__main__":
     percentages = [0.1, 0.3, 0.5, 0.7, 0.9]
     Ks = [round((k * total_pixels)) for k in percentages]
 
-    # Load or train model
+    # Load or train model which is used to create saliency maps.
     model = vgg11(pretrained=False, device=device, im_size = sample_img.shape, num_classes=config.num_classes, class_size=512).to(device)
     if os.path.exists('saved-models/VGG-11-71-best.pth'):
         print("The model will now be loaded.")
         print(True if device == 'cuda' else False)
         model.load_state_dict(torch.load('saved-models/VGG-11-71-best.pth', map_location=torch.device('cpu')), True if device == 'cuda' else False)
     else:
-        # Train model on cifar-100
         print("The model will now be trained.")
         criterion = nn.CrossEntropyLoss()
         optimizer = optim.SGD(model.parameters(), lr=config.learning_rate, momentum=0.9, nesterov=True)
@@ -152,7 +152,7 @@ if __name__ == "__main__":
         train(model, criterion, optimizer, scheduler, train_loader, test_loader, device,
             config.checkpoint_path, config.model_name, config.epochs, config.save_epochs)
 
-    # Initialize FullGrad objects
+    # Initialize FullGrad object
     fullgrad = FullGrad(model, im_size = sample_img.shape, device = device)
 
     # Create ROAR images
