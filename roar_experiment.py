@@ -38,7 +38,7 @@ cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
 
 
-def experiment(criterion, optimizer, scheduler, cfg, percentages = [0.1, 0.3, 0.5, 0.7, 0.9]):
+def experiment(cfg, percentages = [0.1, 0.3, 0.5, 0.7, 0.9]):
     
     # If adjusted data is not created, create it. 
     if not os.path.exists('dataset/cifar-10-adjusted'):
@@ -46,7 +46,7 @@ def experiment(criterion, optimizer, scheduler, cfg, percentages = [0.1, 0.3, 0.
         create_data(percentages, cfg)
 
     # Train model based on certrain adjusted data
-    accuracy_list = perform_experiment(model, criterion, optimizer, scheduler, percentages, cfg)
+    accuracy_list = perform_experiment(percentages, cfg)
     print(accuracy_list)
     # # Create plot
     # plt.plot(percentages, accuracy_list, marker = 'o')
@@ -92,7 +92,7 @@ def perform_experiment(percentages, cfg, num_classes = 10):
         adjusted_train_data = load_imageFolder_data(cfg.batch_size, transform[0], True, cfg.num_workers, data_dir + "train")
         adjusted_test_data = load_imageFolder_data(cfg.batch_size, transform[1], True, cfg.num_workers, data_dir + "test")
         
-        train(copied_model, criterion, optimizer, scheduler, adjusted_train_data, adjusted_test_data, device,
+        train(model, criterion, optimizer, scheduler, adjusted_train_data, adjusted_test_data, device,
         cfg.checkpoint_path, f"roar-{percentage*100}", cfg.epochs, cfg.save_epochs)
 
         eval_accuracy = parse_epoch(adjusted_test_data, copied_model, None, criterion, device, train=False)

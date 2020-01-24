@@ -44,7 +44,7 @@ def parse_epoch(dataloader, model, optimizer, criterion, device, train=True):
             total += target.size(0)
             correct += predicted.eq(target).sum().item()
 
-            print('batch: %d | Loss: %.3f | Acc: %.3f' % (batch_idx, losses/(batch_idx+1), (correct/total)*100))
+            print('batch: %d | Loss: %.3f | Acc: %.3f' % (batch_idx, loss.item(), 100.*predicted.eq(target).sum().item()/target.size(0)))        
         else: 
             with torch.no_grad():
                 outputs = model(data)
@@ -54,8 +54,8 @@ def parse_epoch(dataloader, model, optimizer, criterion, device, train=True):
                 _, predicted = outputs.max(1)
                 total += target.size(0)
                 correct += predicted.eq(target).sum().item()
-
-                # print('batch: %d | Loss: %.3f | Acc: %.3f' % (batch_idx, losses/(batch_idx+1), 100.*correct/total))
+                print('batch: %d | Loss: %.3f | Acc: %.3f' % (batch_idx, loss.item(), 100.*predicted.eq(target).sum().item()/target.size(0)))
+    print("total_batches: %d | total loss: %.3f | epoch Acc: %.3f" % (batch_idx, losses/(batch_idx+1), 100.*correct/total))
     return correct/total
 
 def train(model, criterion, optimizer, scheduler, trainloader, testloader, device,
