@@ -114,7 +114,7 @@ if __name__ == "__main__":
     parser.add_argument('--epochs', type=int, default=80, help='Number of epochs until break')
     parser.add_argument('--load_model', type=str, default='', help='Give location of weights to load model')
     parser.add_argument('--save_epochs', type=int, default=1, help="save model after epochs")
-    parser.add_argument('--learning_rate', type=float, default=0.1, help='Learning rate')
+    parser.add_argument('--learning_rate', type=float, default=1e-2, help='Learning rate')
     parser.add_argument('--num_workers', type=int, default=2, help='The amount of workers used to load data.')
     parser.add_argument('--device', type=str, default="cuda:0", help="Training device 'cpu' or 'cuda'")
     parser.add_argument('--save_model', type=bool, default=True, help="If set to false the model wont be saved.")
