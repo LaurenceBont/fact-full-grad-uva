@@ -61,7 +61,7 @@ def create_adjusted_images_and_save(idx, data, cam, target, ks, percentages, num
             save_imagefolder_image(data_dir, target, new_image, idx, dataset)
 
 
-def get_salience_based_adjusted_data(sample_loader, ks, percentages, num_classes = 10, dataset = "train"):
+def get_salience_based_adjusted_data(sample_loader, ks, percentages, salience_map = "full_grad", num_classes = 10, dataset = "train"):
     """
         Creates adjusted images based on different K's, and saves them.
         
@@ -84,10 +84,16 @@ def get_salience_based_adjusted_data(sample_loader, ks, percentages, num_classes
         data, target = data.to(device).requires_grad_(), target.to(device)
 
         # Compute saliency maps for the input data.
-        _, cam, _ = fullgrad.saliency(data)
+        input_grad, cam, _ = fullgrad.saliency(data)
+        if salience_map == "input_grad":
+            sal_map = input_grad
+        elif salience_map == "random":
+            sal_map = 0
+        else:
+            sal_map = cam
 
         # Find most important pixels, replace and save adjusted image.
-        create_adjusted_images_and_save(idx, data, cam, target, ks, percentages, num_classes, dataset)
+        create_adjusted_images_and_save(idx, data, sal_map, target, ks, percentages, num_classes, dataset)
 
 
 if __name__ == "__main__":
@@ -96,6 +102,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # Model params
+    parser.add_argument('--sal_map', type=str, default="full_grad", help="Name of the salience method")
     parser.add_argument('--model_name', type=str, default="VGG-11", help="Name of the model when saved")
     parser.add_argument('--num_classes', type=int, default=10, help='Dimensionality of output sequence')
     parser.add_argument('--batch_size', type=int, default=1, help='Number of examples to process in a batch')
@@ -143,7 +150,6 @@ if __name__ == "__main__":
     model = vgg11(pretrained=False, device=device, im_size = sample_img.shape, num_classes=config.num_classes, class_size=512).to(device)
     if os.path.exists('saved-models/VGG-11-71-best.pth'):
         print("The model will now be loaded.")
-        print(True if device == 'cuda' else False)
         model.load_state_dict(torch.load('saved-models/VGG-11-71-best.pth', map_location=torch.device('cpu')), True if device == 'cuda' else False)
     else:
         print("The model will now be trained.")
@@ -159,5 +165,5 @@ if __name__ == "__main__":
 
     # Create ROAR images
     print("The adjusted data will now be created.")
-    get_salience_based_adjusted_data(train_loader, Ks, percentages, dataset = "train")
-    get_salience_based_adjusted_data(test_loader, Ks, percentages, dataset = "test")
+    get_salience_based_adjusted_data(train_loader, Ks, percentages, salience_map = config.sal_map, dataset = "train")
+    get_salience_based_adjusted_data(test_loader, Ks, percentages, salience_map = config.sal_map,dataset = "test")
