@@ -36,7 +36,7 @@ def create_data_dirs(percentages, num_classes):
         directory = f'dataset/cifar-{num_classes}-adjusted/cifar-{num_classes}-{percentage*100}%-removed' 
         create_imagefolder_dir(directory, num_classes)
 
-def create_adjusted_images_and_save(idx, data, cam, target, ks, percentages, num_classes, dataset, method = "roar", approach = "zero"):
+def create_adjusted_images_and_save(idx, data, cam, target, ks, percentages, num_classes, dataset, method, approach = "zero"):
     """
         Creates adjusted images based on different K's, and saves them.
         
@@ -61,7 +61,7 @@ def create_adjusted_images_and_save(idx, data, cam, target, ks, percentages, num
             save_imagefolder_image(data_dir, target, new_image, idx, dataset)
 
 
-def get_salience_based_adjusted_data(sample_loader, ks, percentages, salience_map = "full_grad", num_classes = 10, dataset = "train"):
+def get_salience_based_adjusted_data(sample_loader, ks, percentages, salience_map = "full_grad", num_classes = 10, dataset = "train", method = "roar"):
     """
         Creates adjusted images based on different K's, and saves them.
         
@@ -76,7 +76,7 @@ def get_salience_based_adjusted_data(sample_loader, ks, percentages, salience_ma
     if not os.path.exists(f'dataset/cifar-{num_classes}-adjusted/cifar-10-10.0%-removed/{dataset}'):
         create_data_dirs(percentages, num_classes)
     else:
-        print("Dataset already created!")
+        print(f"{dataset}set already created!")
 
 
     # Loops over sample loader to creates per sample every adjusted image, and saves them.
@@ -85,15 +85,17 @@ def get_salience_based_adjusted_data(sample_loader, ks, percentages, salience_ma
 
         # Compute saliency maps for the input data.
         input_grad, cam, _ = fullgrad.saliency(data)
+
+        # Select sal map, if indexes need to be calculated randomly
+        # Selection method is changed instead of salience map.
+        sal_map = cam
         if salience_map == "input_grad":
             sal_map = input_grad
         elif salience_map == "random":
-            sal_map = 0
-        else:
-            sal_map = cam
+            method = "random"
 
         # Find most important pixels, replace and save adjusted image.
-        create_adjusted_images_and_save(idx, data, sal_map, target, ks, percentages, num_classes, dataset)
+        create_adjusted_images_and_save(idx, data, sal_map, target, ks, percentages, num_classes, dataset, method)
 
 
 if __name__ == "__main__":
