@@ -93,7 +93,7 @@ def perform_experiment(percentages, cfg, num_classes = 10):
         adjusted_test_data = load_imageFolder_data(cfg.batch_size, transform[1], True, cfg.num_workers, data_dir + "test")
         
         train(model, criterion, optimizer, scheduler, adjusted_train_data, adjusted_test_data, device,
-        cfg.checkpoint_path, f"roar-{percentage*100}", cfg.epochs, cfg.save_epochs)
+        cfg.checkpoint_path, f"roar-{percentage*100}", cfg.save_epochs, cfg.epochs)
 
         eval_accuracy = parse_epoch(adjusted_test_data, model, None, criterion, device, train=False)
         accuracy_list.append(eval_accuracy)
