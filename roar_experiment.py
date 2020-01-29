@@ -75,11 +75,14 @@ def create_data(percentages, cfg):
 def perform_experiment(percentages, cfg, num_classes = 10):
     accuracy_list = []
 
+    # Cifar transformation is chosen based on amount of classes
     if num_classes == 10:
         transform = [CIFAR_10_TRANSFORM, CIFAR_10_TRANSFORM]
     else:
         transform = [CIFAR_100_TRANSFORM_TRAIN, CIFAR_100_TRANSFORM_TEST]
 
+    # For ever percentage model is trained, and accuracy on test set is captured
+    # after training a model with adjusted data.
     for percentage in percentages:
         print(f"Training of model based on {percentage*100}% deletion of pixels.")
         model = vgg11(pretrained=False, im_size = (3, 32, 32), num_classes=config.num_classes, class_size=512).to(device)
