@@ -22,8 +22,7 @@ __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
            'resnet152', 'resnext50_32x4d', 'resnext101_32x8d',
            'wide_resnet50_2', 'wide_resnet101_2']
 
-cuda = torch.cuda.is_available()
-device = torch.device("cuda" if cuda else "cpu")
+
 
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
@@ -187,8 +186,10 @@ class ResNet(nn.Module):
 
     def __init__(self, block, layers, num_classes=1000, zero_init_residual=False,
                  groups=1, width_per_group=64, replace_stride_with_dilation=None,
-                 norm_layer=None):
+                 norm_layer=None, device=torch.device('cuda:0')):
         super(ResNet, self).__init__()
+
+        self.device = device
 
         # Dictionary that stores FullGrad information
         self.fullgrad_info = {
@@ -308,7 +309,7 @@ class ResNet(nn.Module):
         self.fullgrad_info['get_biases'] = True
         self.fullgrad_info['biases'] = [0]
 
-        x = torch.zeros(1,3,224,224).to(device)
+        x = torch.zeros(1,3,64,64).to(self.device)
         _ = self.forward(x)
         self.fullgrad_info['get_biases'] = False
         return self.fullgrad_info['biases']
