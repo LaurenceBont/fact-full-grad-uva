@@ -214,16 +214,16 @@ def pixel_pertubation(experiment):
         result_random, afoc_random = compute_pertubation(k, experiment, method = "random")
         result_inputgrad, afoc_inputgrad = compute_pertubation(k, experiment, method = "inputgrad")
         result_fullgrad, afoc_fullgrad = compute_pertubation(k,experiment,method = "fullgrad")
-        result_simple_FG, afoc_simplegrad = compute_pertubation(k, experiment, method = "simplegrad")
+        #result_simple_FG, afoc_simplegrad = compute_pertubation(k, experiment, method = "simplegrad")
         
         results_R.append(result_random)
         results_IG.append(result_inputgrad)
         results_FG.append(result_fullgrad)
-        results_simple_FG.append(result_simple_FG)
+        #results_simple_FG.append(result_simple_FG)
 
         results_STD_R.append(np.std(afoc_random))
         results_STD_IG.append(np.std(afoc_inputgrad))
-        results_STD_simple_FG.append(np.std(afoc_simplegrad))
+        #results_STD_simple_FG.append(np.std(afoc_simplegrad))
         results_STD_FG.append(np.std(afoc_fullgrad))
 
 
@@ -231,16 +231,16 @@ def pixel_pertubation(experiment):
     print(f'results for fullgrad: {results_FG}')
     print(f'results for inputgrad: {results_IG}')
     print(f'results for random: {results_R}')
-    print(f'results for simple fullgrad: {results_simple_FG}')
+    #print(f'results for simple fullgrad: {results_simple_FG}')
 
     print_items(results_STD_R, "Random")
     print_items(results_STD_IG, "InputGrad")
-    print_items(results_STD_simple_FG, "SimpleFullGrad")
+    #print_items(results_STD_simple_FG, "SimpleFullGrad")
     print_items(results_STD_FG, "FullGrad")
 
     plt.errorbar(percentages, results_R, results_STD_R, marker='o', label="Random")
     plt.errorbar(percentages, results_IG, results_STD_IG, marker = 'o', label = "InputGrad" )
-    plt.errorbar(percentages, results_simple_FG, results_STD_simple_FG, marker = 'o', label = "Simple FullGrad")
+    #plt.errorbar(percentages, results_simple_FG, results_STD_simple_FG, marker = 'o', label = "Simple FullGrad")
     plt.errorbar(percentages, results_FG, results_STD_FG, marker = 'o', label = "FullGrad")
 
     plt.xlabel("Percentages")
