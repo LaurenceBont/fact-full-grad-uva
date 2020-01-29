@@ -11,3 +11,6 @@ saved-models
 *.JPEG
 *.png
 *.DS_Store
+
+*.zip
+*.rar
