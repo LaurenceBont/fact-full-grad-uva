@@ -59,7 +59,7 @@ class SimpleFullGrad():
         for i in range(1, len(gradients)):
             intermediate_gradient.append(gradients[i]) 
         
-        return input_gradient, intermediate_gradient
+        return input_gradient, intermediate_gradient, out
 
     def _postProcess(self, input):
         # Absolute value
@@ -74,7 +74,7 @@ class SimpleFullGrad():
         #Simple FullGrad saliency
         
         self.model.eval()
-        input_grad, intermed_grad = self._getGradients(image, target_class=target_class)
+        input_grad, intermed_grad, out = self._getGradients(image, target_class=target_class)
         
         im_size = image.size()
 
@@ -93,5 +93,5 @@ class SimpleFullGrad():
                     gradient = F.interpolate(temp, size=(im_size[2], im_size[3]), mode = 'bilinear', align_corners=False) 
                 cam += gradient.sum(1, keepdim=True)
 
-        return cam
+        return cam, out
         

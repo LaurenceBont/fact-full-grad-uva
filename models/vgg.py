@@ -36,7 +36,7 @@ model_urls = {
 
 class VGG(nn.Module):
 
-    def __init__(self, vgg_name, im_size = (1,3,224,224), device=torch.device('cuda:0'),
+    def __init__(self, vgg_name, im_size = (1,3,224,224), device=torch.device('cpu'),
         class_size=512*7*7, batch_norm=False, num_classes=1000, init_weights=True):
         super(VGG, self).__init__()
         self.features = self.make_layers(cfg[vgg_name], batch_norm=batch_norm)

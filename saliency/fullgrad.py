@@ -16,7 +16,7 @@ class FullGrad():
     Compute FullGrad saliency map and full gradient decomposition 
     """
 
-    def __init__(self, model, im_size = (1, 3,224,224), device=torch.device('cuda:0')):
+    def __init__(self, model, im_size = (1, 3,224,224), device=torch.device('cpu')):
         self.model = model
         self.im_size = im_size
         self.device = device
