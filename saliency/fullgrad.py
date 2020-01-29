@@ -90,7 +90,6 @@ class FullGrad():
     def _postProcess(self, input):
         # Absolute value
         input = abs(input)
-
         # Rescale operations to ensure gradients lie between 0 and 1
         input = input - input.min()
         input = input / (input.max())
@@ -109,12 +108,12 @@ class FullGrad():
         cam = gradient
 
         im_size = image.size()
-
         # Bias-gradients of conv layers
         for i in range(len(bias_grad)):
             # Checking if bias-gradients are 4d / 3d tensors
             if len(bias_grad[i].size()) == len(im_size): 
-                temp = self._postProcess(bias_grad[i])
+                # temp = self._postProcess(bias_grad[i])
+                temp = bias_grad[i]
                 if len(im_size) == 3:
                     gradient = F.interpolate(temp, size=im_size[2], mode = 'bilinear', align_corners=False) 
                 elif len(im_size) == 4:

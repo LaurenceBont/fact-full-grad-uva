@@ -16,6 +16,7 @@ import torch.optim as optim
 import os
 import argparse
 from models.vgg import vgg11
+from models.resnet import resnet50
 from utils import prepare_data, load_data, CIFAR_100_TRANSFORM_TRAIN, CIFAR_100_TRANSFORM_TEST, CIFAR_10_TRANSFORM
 
 
@@ -92,7 +93,7 @@ if __name__ == "__main__":
 
     # Model params
     parser.add_argument('--model_name', type=str, default="VGG-11", help="Name of the model when saved")
-    parser.add_argument('--num_classes', type=int, default=10, help='Dimensionality of output sequence')
+    parser.add_argument('--num_classes', type=int, default=2, help='Dimensionality of output sequence')
     parser.add_argument('--batch_size', type=int, default=128, help='Number of examples to process in a batch')
     parser.add_argument('--epochs', type=int, default=200, help='Number of epochs until break')
     parser.add_argument('--load_model', type=str, default='', help='Give location of weights to load model')
@@ -101,7 +102,7 @@ if __name__ == "__main__":
     parser.add_argument('--device', type=str, default="cuda:0", help="Training device 'cpu' or 'cuda'")
     parser.add_argument('--save_model', type=bool, default=True, help="If set to false the model wont be saved.")
     parser.add_argument('--data_dir', type=str, default=PATH + 'dataset', help="data dir for dataloader")
-    parser.add_argument('--dataset_name', type=str, default='/cifar10-imagefolder', help= "Name of dataset contained in the data_dir")
+    parser.add_argument('--dataset_name', type=str, default='/extra_experiment', help= "Name of dataset contained in the data_dir")
     parser.add_argument('--checkpoint_path', type=str, default=PATH + 'saved-models/vgg-16', help="model saving dir.")
     parser.add_argument('--dataset', type=str, default='cifar10', help="Select cifar10 or cifar100 dataset")
 
@@ -114,15 +115,25 @@ if __name__ == "__main__":
 
     device = torch.device(config.device)
 
-    model = vgg11(pretrained=False, num_classes=config.num_classes, class_size=512).to(device)
+    # model = vgg11(pretrained=False, num_classes=config.num_classes, class_size=512).to(device)
+    model = resnet50(pretrained=False, num_classes=config.num_classes).to(device)
+
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=config.learning_rate, momentum=0.9, nesterov=True, weight_decay=5e-4)
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 120, 160, 200], gamma=0.2)
 
-    trainloader = load_data(config.batch_size, CIFAR_10_TRANSFORM,
+
+    transform = transforms.Compose(
+        [transforms.Resize((64,64)),
+        transforms.ToTensor(),
+        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
+
+
+    trainloader = load_data(config.batch_size, transform,
                                 True, 2, config.data_dir, config.dataset_name, train=True, name=config.dataset)
-    testloader = load_data(config.batch_size, CIFAR_10_TRANSFORM,
+    testloader = load_data(config.batch_size, transform,
                                 False, 2, config.data_dir, config.dataset_name, train=False, name=config.dataset)
 
     # Train the model
