@@ -1,41 +1,6 @@
-#
-# Copyright (c) 2019 Idiap Research Institute, http://www.idiap.ch/
-# Written by Suraj Srinivas <suraj.srinivas@idiap.ch>
-#
-
-""" Compute saliency maps of images from dataset folder 
-    and dump them in a results folder """
-
-import torch
-
-from torchvision import datasets, transforms, utils
-import torch.optim as optim
-import matplotlib.pyplot as plt
-import numpy as np
-import argparse
-import copy
-import os
-import cv2
-
-# Import saliency methods and models
-from saliency.fullgrad import FullGrad
-from saliency.simple_fullgrad import SimpleFullGrad
-from models.vgg import *
-from models.resnet import *
-from misc_functions import *
-from roar_data_preparation import get_salience_based_adjusted_data
-from utils import load_imageFolder_data, CIFAR_100_TRANSFORM_TRAIN, CIFAR_100_TRANSFORM_TEST
-
-# PATH variables
-PATH = os.path.dirname(os.path.abspath(__file__)) + '/'
-dataset = PATH + 'dataset/'
-
-batch_size = 4
-total_pixels = 244*244
-
-cuda = torch.cuda.is_available()
-device = torch.device("cuda" if cuda else "cpu")
-
+"""
+    This file contains all the functions needed to run the roar experiment
+"""
 
 def experiment(criterion, optimizer, scheduler, cfg, percentages = [0.1, 0.3, 0.5, 0.7, 0.9]):
     

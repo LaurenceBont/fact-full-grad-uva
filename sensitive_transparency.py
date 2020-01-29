@@ -9,7 +9,7 @@ it allows for certain flags to be set and instantly run the classifier
 and save it
 """
 import torch
-from torchvision import datasets, transforms, utils
+from torchvision import datasets, utils
 import torch.nn as nn
 import torch.optim as optim
 import os
@@ -20,16 +20,7 @@ from utils import prepare_data, load_data, CIFAR_100_TRANSFORM_TRAIN, CIFAR_100_
 from classifier import train, eval
 from saliency.fullgrad import FullGrad
 from saliency.simple_fullgrad import SimpleFullGrad
-from misc_functions import *
 import csv
-
-csv_dir = 'dataset/PPB-2017/PPB-2017-metadata.csv'
-metadata = []
-with open(csv_dir, newline='') as csvfile:
-    spamreader = csv.reader(csvfile, delimiter=',', quotechar='|')
-    for row in spamreader:
-        metadata.append(row)
-
 
 def etnic_acc(dataloader, model, optimizer, criterion, device, train=True):
     '''
@@ -121,15 +112,6 @@ if __name__ == "__main__":
     num_workers = 1
     test_dir = PATH + 'dataset/extra_experiment/test'
     train_dir = PATH + 'dataset/cifar10-imagefolder/train'
-
-    transform = transforms.Compose(
-        [transforms.Resize((32,32)),
-        transforms.ToTensor(),
-        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-
-    unnormalize = NormalizeInverse(mean = [0.5, 0.5, 0.5],
-                        std = [0.5, 0.5, 0.5])
-
 
     dataset = datasets.ImageFolder(root=train_dir, transform=transform)
     trainloader = torch.utils.data.DataLoader(dataset, batch_size=config.batch_size, num_workers=num_workers, shuffle=True)
