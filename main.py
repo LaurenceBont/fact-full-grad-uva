@@ -25,7 +25,7 @@ def main(config):
         if not os.path.exists('dataset/extra_experiment/'):
             print('dataset does not exist and needs to be downloaded!')
         else:
-            loader_config = DataLoaderConfiguration(datasetname='extra_experiment', batch_size=1024, path=PATH, transform=EXTRA_TRANSFORM)
+            loader_config = DataLoaderConfiguration(datasetname='extra_experiment', batch_size=100, path=PATH, transform=EXTRA_TRANSFORM)
 
             sensitive_transparency(model_config, loader_config)
 

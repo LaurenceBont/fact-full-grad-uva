@@ -18,7 +18,6 @@ from models.vgg import vgg11, vgg16, vgg19
 from models.resnet import resnet50
 from utils import prepare_data, load_data, CIFAR_100_TRANSFORM_TRAIN, CIFAR_100_TRANSFORM_TEST, CIFAR_10_TRANSFORM, load_imageFolder_data
 from classifier import train, eval
-from saliency.fullgrad import FullGrad
 from saliency.simple_fullgrad import SimpleFullGrad
 import csv
 from misc_functions import save_saliency_map
@@ -61,20 +60,20 @@ def etnic_acc(dataloader, model, optimizer, criterion, device, csv_dir, train=Tr
     print("Female, lighter, accuracy :", correct['Female']['lighter']/total['Female']['lighter'])
     print("Female, darker, accuracy :", correct['Female']['darker']/total['Female']['darker'])
 
-def compute_save_fullgrad_saliency(sample_loader, unnormalize, save_path, device, simple_fullgrad, fullgrad):
+def compute_save_fullgrad_saliency(sample_loader, unnormalize, save_path, device, simple_fullgrad):
     for batch_idx, (data, target) in enumerate(sample_loader):
         data, target = data.to(device).requires_grad_(), target.to(device)
 
         # Compute saliency maps for the input data
-        _, cam, _ = fullgrad.saliency(data)
+        # _, cam, _ = fullgrad.saliency(data)
         cam_simple, _ = simple_fullgrad.saliency(data)
         # Save saliency maps
         for i in range(data.size(0)):
             filename = save_path + str( (batch_idx+1) * (i+1))
-            print(i)
+            # print(i)
             image = unnormalize(data[i,:,:,:].cpu())
             save_saliency_map(image, cam_simple[i,:,:,:], filename + '.jpg')
-            save_saliency_map(image, cam[i,:,:,:], filename + 'full.jpg')
+            # save_saliency_map(image, cam[i,:,:,:], filename + 'full.jpg')
 
 def sensitive_transparency(model_config, data_config):
     saliency_dir = data_config.path + 'dataset/saliency/'
@@ -88,10 +87,10 @@ def sensitive_transparency(model_config, data_config):
 
     simple_fullgrad = SimpleFullGrad(model_config.model)
     # model
-    fullgrad = FullGrad(model_config.model, im_size=(1,3,32,32), device=model_config.device)
+    # fullgrad = FullGrad(model_config.model, im_size=(1,3,32,32), device=model_config.device)
 
     if os.path.exists(saliency_dir):
-        compute_save_fullgrad_saliency(saliencyloader, data_config.unnormalize, data_config.save_path, model_config.device, simple_fullgrad, fullgrad)
+        compute_save_fullgrad_saliency(saliencyloader, data_config.unnormalize, data_config.save_path, model_config.device, simple_fullgrad)
 
     else:
         print("Add pictures to: " + saliency_dir)
