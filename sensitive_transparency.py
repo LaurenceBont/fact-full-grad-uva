@@ -61,12 +61,12 @@ def etnic_acc(dataloader, model, optimizer, criterion, device, csv_dir, train=Tr
     print("Female, lighter, accuracy :", correct['Female']['lighter']/total['Female']['lighter'])
     print("Female, darker, accuracy :", correct['Female']['darker']/total['Female']['darker'])
 
-def compute_save_fullgrad_saliency(sample_loader, unnormalize, save_path, device, simple_fullgrad):
+def compute_save_fullgrad_saliency(sample_loader, unnormalize, save_path, device, simple_fullgrad, fullgrad):
     for batch_idx, (data, target) in enumerate(sample_loader):
         data, target = data.to(device).requires_grad_(), target.to(device)
 
         # Compute saliency maps for the input data
-        # _, cam, _ = fullgrad.saliency(data)
+        _, cam, _ = fullgrad.saliency(data)
         cam_simple, _ = simple_fullgrad.saliency(data)
         # Save saliency maps
         for i in range(data.size(0)):
@@ -74,21 +74,24 @@ def compute_save_fullgrad_saliency(sample_loader, unnormalize, save_path, device
             print(i)
             image = unnormalize(data[i,:,:,:].cpu())
             save_saliency_map(image, cam_simple[i,:,:,:], filename + '.jpg')
+            save_saliency_map(image, cam[i,:,:,:], filename + 'full.jpg')
 
 def sensitive_transparency(model_config, data_config):
     saliency_dir = data_config.path + 'dataset/saliency/'
     dataset = datasets.ImageFolder(root=saliency_dir, transform=data_config.transform)
     saliencyloader = torch.utils.data.DataLoader(dataset, batch_size=1, num_workers=2)
-
+    # model_config.set_model()
     if not os.path.exists(model_config.model_dir):
         train(model_config, data_config)
     else:    
         model_config.load_model()
 
     simple_fullgrad = SimpleFullGrad(model_config.model)
+    # model
+    fullgrad = FullGrad(model_config.model, im_size=(1,3,32,32), device=model_config.device)
 
     if os.path.exists(saliency_dir):
-        compute_save_fullgrad_saliency(saliencyloader, data_config.unnormalize, data_config.save_path, model_config.device, simple_fullgrad)
+        compute_save_fullgrad_saliency(saliencyloader, data_config.unnormalize, data_config.save_path, model_config.device, simple_fullgrad, fullgrad)
 
     else:
         print("Add pictures to: " + saliency_dir)

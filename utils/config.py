@@ -31,10 +31,10 @@ class ModelConfiguration:
 
     def set_model(self, name):
         if name == 'VGG-11':
-            self.model = vgg11(pretrained=False, num_classes=self.num_classes, class_size=self.class_size).to(self.device)
+            self.model = vgg11(pretrained=False, num_classes=self.num_classes, class_size=self.class_size, im_size=(1,3,32,32), device=self.device).to(self.device)
 
         if name == 'RESNET-50':
-            self.model = resnet50(pretrained=False, num_classes=self.num_classes).to(self.device)
+            self.model = resnet50(pretrained=False, num_classes=self.num_classes, device=self.device).to(self.device)
 
     def set_optimizer(self):
         self.optimizer = optim.SGD(self.model.parameters(), lr=self.learning_rate, momentum=0.9, nesterov=True)

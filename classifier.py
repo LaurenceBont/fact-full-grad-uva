@@ -44,7 +44,7 @@ def parse_epoch(dataloader, model, optimizer, criterion, device, train=True):
             total += target.size(0)
             correct += predicted.eq(target).sum().item()
 
-            print('batch: %d | Loss: %.3f | Acc: %.3f' % (batch_idx, loss.item(), 100.*predicted.eq(target).sum().item()/target.size(0)))        
+            # print('batch: %d | Loss: %.3f | Acc: %.3f' % (batch_idx, loss.item(), 100.*predicted.eq(target).sum().item()/target.size(0)))
         else: 
             with torch.no_grad():
                 outputs = model(data)
@@ -54,7 +54,7 @@ def parse_epoch(dataloader, model, optimizer, criterion, device, train=True):
                 _, predicted = outputs.max(1)
                 total += target.size(0)
                 correct += predicted.eq(target).sum().item()
-                print('batch: %d | Loss: %.3f | Acc: %.3f' % (batch_idx, loss.item(), 100.*predicted.eq(target).sum().item()/target.size(0)))
+    #             print('batch: %d | Loss: %.3f | Acc: %.3f' % (batch_idx, loss.item(), 100.*predicted.eq(target).sum().item()/target.size(0)))
     print("total_batches: %d | total loss: %.3f | epoch Acc: %.3f" % (batch_idx, losses/(batch_idx+1), 100.*correct/total))
     return correct/total
 
@@ -70,12 +70,12 @@ def train(model_config, loader_config):
         model_config.scheduler.step()
         accuracy = parse_epoch(loader_config.testloader, model_config.model, model_config.optimizer, model_config.criterion, model_config.device, train=False)
         
-        if accuracy > best_acc:
-            model_config.save_model()
-            best_acc = accuracy  
+        # if accuracy > best_acc:
+        model_config.save_model()
+        best_acc = accuracy  
 
-        if train_acc > 0.9:
-            break
+        # if train_acc > 0.9:
+        #     break
             
 def eval(model, criterion, optimizer, trainloader, testloader, device,
             load_model, save_epochs):

@@ -5,11 +5,15 @@ import os
 from roar_data_preparation import create_data
 from classifier import train, parse_epoch
 from utils import load_imageFolder_data, DataLoaderConfiguration
+from saliency.fullgrad import FullGrad
 
 
 def experiment(model_config, loader_config, percentages = [0.1, 0.3, 0.5, 0.7, 0.9]):
     if not os.path.exists(model_config.model_dir):
         train(model_config, loader_config)
+        # Load model
+    # model_config.load_model()
+    # fullgrad = FullGrad(model_config.model, im_size=loader_config.image_shape, device=model_config.device)
 
     # If adjusted data is not created, create it. 
     if not os.path.exists(loader_config.path + 'dataset/roar_full_grad/'):
@@ -28,17 +32,17 @@ def experiment(model_config, loader_config, percentages = [0.1, 0.3, 0.5, 0.7, 0
         create_data(percentages, loader_config, salience_method="random")
 
     # Train model based on certrain adjusted data
-    accuracy_list = perform_experiment(percentages, model_config, loader_config, "full_grad")
-    accuracy_list = perform_experiment(percentages, model_config, loader_config, "input_grad")
-    accuracy_list = perform_experiment(percentages, model_config, loader_config, "random")
-
+    accuracy_list = []
+    accuracy_list.append(perform_experiment(percentages, model_config, loader_config, "full_grad"))
+    accuracy_list.append(perform_experiment(percentages, model_config, loader_config, "input_grad"))
+    accuracy_list.append(perform_experiment(percentages, model_config, loader_config, "random"))
     return accuracy_list
 
 def perform_experiment(percentages, model_config, loader_config, method):
     accuracy_list = []
 
     for percentage in percentages:
-        print(f"Training of model based on {percentage*100}% deletion of pixels.")
+        # print(f"Training of model based on {percentage*100}% deletion of pixels.")
 
         model_config.set_model('VGG-11')
         model_config.set_optimizer()
@@ -58,7 +62,7 @@ def perform_experiment(percentages, model_config, loader_config, method):
         eval_accuracy = parse_epoch(percentage_loader.testloader, model_config.model, model_config.optimizer, model_config.criterion, model_config.device, train=False)
         accuracy_list.append(eval_accuracy)
         
-        print("Eval accur:", eval_accuracy)
-        print("----------------------------------------------")
+        # print("Eval accur:", eval_accuracy)
+        # print("----------------------------------------------")
 
     return accuracy_list

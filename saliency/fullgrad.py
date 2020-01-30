@@ -112,8 +112,8 @@ class FullGrad():
         for i in range(len(bias_grad)):
             # Checking if bias-gradients are 4d / 3d tensors
             if len(bias_grad[i].size()) == len(im_size): 
-                # temp = self._postProcess(bias_grad[i])
-                temp = bias_grad[i]
+                temp = self._postProcess(bias_grad[i])
+                # temp = bias_grad[i]
                 if len(im_size) == 3:
                     gradient = F.interpolate(temp, size=im_size[2], mode = 'bilinear', align_corners=False) 
                 elif len(im_size) == 4:

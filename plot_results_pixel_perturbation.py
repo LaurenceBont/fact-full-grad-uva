@@ -28,6 +28,7 @@ def plot_results(percentages, results_R, results_IG, results_FG, experiment):
     plt.legend()
     plt.show()
 
+def pixel_perburtation_results():
+    plot_results(percentages, results_random_AFOC, results_inputgrad_AFOC, results_fullgrad_AFOC, "AFOC")
+    plot_results(percentages, results_random_KL, results_inputgrad_KL, results_fullgrad_KL, "KL-divergence")
 
-plot_results(percentages, results_random_AFOC, results_inputgrad_AFOC, results_fullgrad_AFOC, "AFOC")
-plot_results(percentages, results_random_KL, results_inputgrad_KL, results_fullgrad_KL, "KL-divergence")

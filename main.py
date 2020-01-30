@@ -1,9 +1,10 @@
 import argparse
-from utils import ModelConfiguration, DataLoaderConfiguration
+from utils import ModelConfiguration, DataLoaderConfiguration, EXTRA_TRANSFORM
 import os
 from roar_experiment import experiment
 from sensitive_transparency import sensitive_transparency
 import torch
+
 def main(config):
     torch.manual_seed(config.seed)
     PATH = os.path.dirname(os.path.abspath(__file__)) + '/'
@@ -24,7 +25,7 @@ def main(config):
         if not os.path.exists('dataset/extra_experiment/'):
             print('dataset does not exist and needs to be downloaded!')
         else:
-            loader_config = DataLoaderConfiguration(datasetname='extra_experiment', path=PATH)
+            loader_config = DataLoaderConfiguration(datasetname='extra_experiment', batch_size=1024, path=PATH, transform=EXTRA_TRANSFORM)
 
             sensitive_transparency(model_config, loader_config)
 

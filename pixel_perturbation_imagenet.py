@@ -23,9 +23,9 @@ import torch.nn.functional as F
 
 # PATH variables
 PATH = os.path.dirname(os.path.abspath(__file__)) + '/'
-dataset = PATH + 'dataset_copy2/'
+dataset = PATH + 'dataset/pixelperturbation/'
 
-batch_size = 101
+batch_size = 5
 total_pixels = 224*224
 
 cuda = torch.cuda.is_available()
@@ -104,7 +104,7 @@ def compute_saliency_and_save(k, method):
     former_outputs, new_images_to_forward, image_counter = [], [], 0
 
     image_counter = 0
-    max_iter = 100
+    max_iter = 5
     for batch_idx, (data, target) in enumerate(sample_loader):
         data, target = data.to(device).requires_grad_(), target.to(device)
         if method == "inputgrad" or method == "random" or method == "fullgrad":

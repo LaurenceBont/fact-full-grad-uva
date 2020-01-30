@@ -6,6 +6,11 @@ CIFAR_10_TRANSFORM = transforms.Compose(
     transforms.ToTensor(),
     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
+EXTRA_TRANSFORM = transforms.Compose(
+    [transforms.Resize((64,64)),
+    transforms.ToTensor(),
+    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
 UNNORMALIZE = NormalizeInverse(mean = [0.5, 0.5, 0.5],
                     std = [0.5, 0.5, 0.5])
 
