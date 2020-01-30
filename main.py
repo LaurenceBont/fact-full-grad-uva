@@ -3,6 +3,7 @@ from utils import ModelConfiguration, DataLoaderConfiguration
 import os
 from roar_experiment import experiment
 from sensitive_transparency import sensitive_transparency
+import torch
 def main(config):
     torch.manual_seed(config.seed)
     PATH = os.path.dirname(os.path.abspath(__file__)) + '/'
