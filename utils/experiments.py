@@ -28,7 +28,7 @@ def replace_pixels(img, idx, approach = 'zero'):
         for x,y in idx:
             img[:,x,y] = 0
     elif approach == 'mean':
-        mean_r, mean_g, mean_b = calc_mean_channels(img)
+        mean_r, mean_g, mean_b = calc_rgb_means(img)
         for x,y in idx:
             img[0,x,y] = mean_r
             img[1,x,y] = mean_g

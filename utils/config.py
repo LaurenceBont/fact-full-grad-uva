@@ -9,7 +9,7 @@ from models.resnet import resnet50
 from models.vgg import vgg11
 
 class ModelConfiguration:
-    def __init__(self, num_classes=10, epochs=200, save_epochs=1, learning_rate=0.1, device='cuda:0', class_size=512, model_name='VGG-11', checkpoint_path='saved-models/', model_dir=''):
+    def __init__(self, num_classes=10, epochs=200, save_epochs=1, learning_rate=0.1, device='cuda:0', class_size=512, model_name='VGG-11', checkpoint_path='saved-models/', experiment='roar'):
         self.model = None
         self.optimizer = None
         self.scheduler = None
@@ -18,15 +18,15 @@ class ModelConfiguration:
         self.class_size = class_size
         self.num_classes = num_classes
         self.checkpoint_path = checkpoint_path
+        
         self.epochs = epochs
         self.save_epochs = save_epochs
         self.learning_rate = learning_rate
         self.device = torch.device(device)
         self.criterion = nn.CrossEntropyLoss()
-        self.model_dir = model_dir
+        self.model_dir = checkpoint_path + model_name + '-' + experiment + '.pth'
         self.set_model(model_name)
-        if self.model_dir:
-            self.load_model()
+        self.load_model()
         self.set_optimizer()
 
     def set_model(self, name):
@@ -41,27 +41,35 @@ class ModelConfiguration:
         self.scheduler = optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=[60, 120, 160, 200], gamma=0.2)
 
     def load_model(self):
-        self.model.load_state_dict(torch.load(self.model_dir), True if self.device == 'cuda:0' else False)
+        if os.path.exists(self.model_dir):
+            print(self.model_dir, self.num_classes)
+            self.model.load_state_dict(torch.load(self.model_dir), True if self.device == 'cuda:0' else False)
 
-    def save_model(self, epoch):
+    def save_model(self):
         if not os.path.exists(self.checkpoint_path):
             os.makedirs(self.checkpoint_path)
-        
-        location = os.path.join(self.checkpoint_path, '%s-%s.pth' % (self.model_name, str(epoch)))
-        torch.save(self.model.state_dict(), location)
+        torch.save(self.model.state_dict(), self.model_dir)
          
 
 
 class DataLoaderConfiguration:
-    def __init__(self, dataset='cifar10', batch_size=128, transform=CIFAR_10_TRANSFORM, datasetname='roar_full_grad', data_dir='dataset'):
-        PATH = os.path.dirname(os.path.abspath(__file__)) + '/'
+    def __init__(self, dataset='cifar10', batch_size=128, path='./', transform=CIFAR_10_TRANSFORM, datasetname='cifar-10', data_dir='dataset'):
         self.dataset = dataset
         self.batch_size = batch_size
-        self.data_dir = PATH + data_dir
+        self.data_dir = path + data_dir
+        self.num_workers = 2
         self.dataset_name = datasetname
         self.dataset = dataset
+        self.path = path
+
+        self.transform = transform
 
         self.trainloader = load_data(batch_size, transform,
                                 True, 2, self.data_dir, self.dataset_name, train=True, name=self.dataset)
+                                
         self.testloader = load_data(self.batch_size, transform,
                                 False, 2, self.data_dir, self.dataset_name, train=False, name=self.dataset)
+
+        sample_img = next(iter(self.trainloader))[0]
+        self.image_size = sample_img.shape[2] * sample_img.shape[3]
+        self.image_shape = sample_img.shape

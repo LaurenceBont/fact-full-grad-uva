@@ -44,7 +44,7 @@ def parse_epoch(dataloader, model, optimizer, criterion, device, train=True):
             total += target.size(0)
             correct += predicted.eq(target).sum().item()
 
-            print('batch: %d | Loss: %.3f | Acc: %.3f' % (batch_idx, loss.item(), 100.*predicted.eq(target).sum().item()/target.size(0)))
+            print('batch: %d | Loss: %.3f | Acc: %.3f' % (batch_idx, loss.item(), 100.*predicted.eq(target).sum().item()/target.size(0)))        
         else: 
             with torch.no_grad():
                 outputs = model(data)
@@ -54,31 +54,28 @@ def parse_epoch(dataloader, model, optimizer, criterion, device, train=True):
                 _, predicted = outputs.max(1)
                 total += target.size(0)
                 correct += predicted.eq(target).sum().item()
-
                 print('batch: %d | Loss: %.3f | Acc: %.3f' % (batch_idx, loss.item(), 100.*predicted.eq(target).sum().item()/target.size(0)))
     print("total_batches: %d | total loss: %.3f | epoch Acc: %.3f" % (batch_idx, losses/(batch_idx+1), 100.*correct/total))
     return correct/total
 
-def train(model, criterion, optimizer, scheduler, trainloader, testloader, device,
-        checkpoint_path, model_name, save_epochs, epochs=200):
+def train(model_config, loader_config):    
     '''
         This function trains the model that is passed in the first argument,
         using the arguments used afterwards.
     '''
     best_acc = 0.0
-    for epoch in range(0, epochs):
-        parse_epoch(trainloader, model, optimizer, criterion, device)
+    for epoch in range(0, model_config.epochs):
+        train_acc = parse_epoch(loader_config.trainloader, model_config.model, model_config.optimizer, model_config.criterion, model_config.device)
         torch.cuda.empty_cache()
-        scheduler.step()
-        accuracy = parse_epoch(testloader, model, optimizer, criterion, device, train=False)
+        model_config.scheduler.step()
+        accuracy = parse_epoch(loader_config.testloader, model_config.model, model_config.optimizer, model_config.criterion, model_config.device, train=False)
         
         if accuracy > best_acc:
-            torch.save(model.state_dict(), checkpoint_path.format(model=model_name, epoch=epoch, type='best'))
-            best_acc = accuracy
-            continue
+            model_config.save_model()
+            best_acc = accuracy  
 
-        if not epoch % save_epochs:
-            torch.save(model.state_dict(), checkpoint_path.format(model=model_name, epoch=epoch, type='normal'))    
+        if train_acc > 0.9:
+            break
             
 def eval(model, criterion, optimizer, trainloader, testloader, device,
             load_model, save_epochs):
