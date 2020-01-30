@@ -6,21 +6,7 @@ import torch
 
 from torchvision import datasets, transforms, utils
 
-CIFAR_100_TRANSFORM_TRAIN = transforms.Compose([
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-    ])
-
-CIFAR_100_TRANSFORM_TEST = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-        ])
-
-CIFAR_10_TRANSFORM = transforms.Compose(
-    [transforms.ToTensor(),
-     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+from .transforms import CIFAR_100_TRANSFORM_TEST, CIFAR_100_TRANSFORM_TRAIN, CIFAR_10_TRANSFORM
 
 
 def load_imageFolder_data(batch_size, transform, shuffle, num_workers, data_dir):
@@ -108,4 +94,15 @@ def prepare_data(load_dir, save_dir, name='cifar100'):
                 Please provide an empty directory, or use this dataset")
     
 
+def load_PPB_metadata(location='dataset/extra_experiment/test/PPB-2017-metadata.csv'):
+    """
+        This function loads the metadata for the PPB dataset
+    """
+    metadata = []
+    with open(location, newline='') as csvfile:
+        spamreader = csv.reader(csvfile, delimiter=',', quotechar='|')
+        for row in spamreader:
+            metadata.append(row)
     
+
+

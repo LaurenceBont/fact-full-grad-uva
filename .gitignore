@@ -11,4 +11,6 @@ saved-models
 *.JPEG
 *.png
 *.DS_Store
-pixel_perturbation_imagenet.py
+
+*.zip
+*.rar

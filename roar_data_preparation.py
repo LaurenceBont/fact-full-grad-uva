@@ -1,28 +1,40 @@
-import torch
+"""
+    This file creates adjusted datasets using the saliency map
+"""
 
-from torchvision import datasets, transforms, utils
+import argparse
+import os
+
+import cv2
+import numpy as np
+import torch
 import torch.nn as nn
 import torch.optim as optim
-import numpy as np
-import os
-import argparse
-import cv2
+from torchvision import datasets, transforms, utils
 
+from classifier import train
 # Import saliency methods and models
 from saliency.fullgrad import FullGrad
 from saliency.simple_fullgrad import SimpleFullGrad
-from models.vgg import *
-from models.resnet import *
-from misc_functions import *
-from utils import *
-from classifier import train
+from utils import (UNNORMALIZE, create_imagefolder_dir, load_data,
+                   replace_pixels, return_k_index_argsort,
+                   save_imagefolder_image)
 
-normalize = transforms.Normalize(mean = [0.485, 0.456, 0.406],
-                                    std = [0.229, 0.224, 0.225])
-unnormalize = NormalizeInverse(mean = [0.485, 0.456, 0.406],
-                                 std = [0.229, 0.224, 0.225])
 
-def create_data_dirs(percentages, num_classes):
+def create_data(percentages, cfg, salience_method="full_grad"):
+    # Create train and test dataloader
+    train_loader = load_data(1, cfg.transform, False, 1, cfg.data_dir, cfg.dataset, train=True, name=cfg.dataset)
+    test_loader = load_data(1, cfg.transform, False, 1, cfg.data_dir, cfg.dataset, train=False, name=cfg.dataset)
+    
+    # number of pixels in k percent of the image
+    num_pixel_list = [round((percentage * cfg.image_size)) for percentage in percentages]
+
+
+    # Get adjusted data
+    create_salience_based_adjusted_data(train_loader, num_pixel_list, percentages, salience_method, dataset="train")
+    create_salience_based_adjusted_data(test_loader, num_pixel_list, percentages, salience_method, dataset="test")
+
+def create_data_dirs(percentages, num_classes, salience_method):
     """
         Creates directories to save adjusted images.
 
@@ -30,13 +42,13 @@ def create_data_dirs(percentages, num_classes):
                         convenient directory names.
     """
     
-    os.mkdir(f'dataset/cifar-{num_classes}-adjusted')
+    os.mkdir(f'dataset/roar_{salience_method}')
 
     for percentage in percentages:
-        directory = f'dataset/cifar-{num_classes}-adjusted/cifar-{num_classes}-{percentage*100}%-removed' 
+        directory = f'dataset/roar_{salience_method}/cifar-{num_classes}-{percentage*100}%-removed' 
         create_imagefolder_dir(directory, num_classes)
 
-def create_adjusted_images_and_save(idx, data, cam, target, ks, percentages, num_classes, dataset, method = "roar", approach = "zero"):
+def create_adjusted_images_and_save(idx, data, cam, target, ks, percentages, num_classes, dataset, method, approach = "zero"):
     """
         Creates adjusted images based on different K's, and saves them.
         
@@ -49,19 +61,19 @@ def create_adjusted_images_and_save(idx, data, cam, target, ks, percentages, num
 
     for k, percentage in zip(ks, percentages): 
 
-            # Get unnormalized image
-            image = unnormalize(data.squeeze())
+        # Get unnormalized image
+        image = UNNORMALIZE(data.squeeze())
 
-            # Get k indices and replace within image
-            indices = return_k_index_argsort(sal_map.cpu().detach().numpy(), k, method)
-            new_image = replace_pixels(image, indices, approach = approach)
+        # Get k indices and replace within image
+        indices = return_k_index_argsort(sal_map.cpu().detach().numpy(), k, method)
+        new_image = replace_pixels(image, indices, approach = approach)
 
-            # Save adjusted images
-            data_dir = f'dataset/cifar-{num_classes}-adjusted/cifar-{num_classes}-{percentage*100}%-removed'
-            save_imagefolder_image(data_dir, target, new_image, idx, dataset)
+        # Save adjusted images
+        data_dir = f'dataset/roar_{method}/cifar-{num_classes}-{percentage*100}%-removed'
+        save_imagefolder_image(data_dir, target, new_image, idx, dataset)
 
 
-def get_salience_based_adjusted_data(sample_loader, ks, percentages, num_classes = 10, dataset = "train"):
+def create_salience_based_adjusted_data(sample_loader, ks, percentages, salience_method="full_grad", num_classes=10, dataset="train", method="roar"):
     """
         Creates adjusted images based on different K's, and saves them.
         
@@ -73,89 +85,25 @@ def get_salience_based_adjusted_data(sample_loader, ks, percentages, num_classes
     """
 
     # Creates data directories if needed.
-    if not os.path.exists(f'dataset/cifar-{num_classes}-adjusted'):
-        create_data_dirs(percentages, num_classes)
+    if not os.path.exists(f'dataset/roar_{salience_method}'):
+        create_data_dirs(percentages, num_classes, salience_method)
+    else:
+        print(f"{dataset}set already created!")
+
 
     # Loops over sample loader to creates per sample every adjusted image, and saves them.
     for idx, (data, target) in enumerate(sample_loader):
         data, target = data.to(device).requires_grad_(), target.to(device)
 
-        # Compute saliency maps for the input data.
-        _, cam, _ = fullgrad.saliency(data)
+        if salience_method == "full_grad":
+            _, salience_map, _ = fullgrad.saliency(data)
 
+        elif salience_method == "input_grad":
+            salience_map, _, _ = fullgrad.saliency(data)
+
+        elif salience_method == "random":
+            salience_map = None
+            method = "random"
+            
         # Find most important pixels, replace and save adjusted image.
-        create_adjusted_images_and_save(idx, data, cam, target, ks, percentages, num_classes, dataset)
-
-
-if __name__ == "__main__":
-    PATH = os.path.dirname(os.path.abspath(__file__)) + '/'
-    # Parse training configuration
-    parser = argparse.ArgumentParser()
-
-    # Model params
-    parser.add_argument('--model_name', type=str, default="VGG-11", help="Name of the model when saved")
-    parser.add_argument('--num_classes', type=int, default=10, help='Dimensionality of output sequence')
-    parser.add_argument('--batch_size', type=int, default=1, help='Number of examples to process in a batch')
-    parser.add_argument('--epochs', type=int, default=200, help='Number of epochs until break')
-    parser.add_argument('--load_model', type=str, default='', help='Give location of weights to load model')
-    parser.add_argument('--save_epochs', type=int, default=1, help="save model after epochs")
-    parser.add_argument('--learning_rate', type=float, default=0.1, help='Learning rate')
-    parser.add_argument('--device', type=str, default="cuda:0", help="Training device 'cpu' or 'cuda'")
-    parser.add_argument('--save_model', type=bool, default=True, help="If set to false the model wont be saved.")
-    parser.add_argument('--data_dir', type=str, default=PATH + 'dataset', help="data dir for dataloader")
-    parser.add_argument('--dataset_name', type=str, default='/cifar10-imagefolder', help= "Name of dataset contained in the data_dir")
-    parser.add_argument('--checkpoint_path', type=str, default=PATH + 'saved-models/vgg-11', help="model saving dir.")
-    parser.add_argument('--dataset', type=str, default='cifar10', help="Select cifar10 or cifar100 dataset")
-
-    config = parser.parse_args()
-
-    if not os.path.exists(config.checkpoint_path):
-        os.makedirs(config.checkpoint_path)
-    config.checkpoint_path = os.path.join(config.checkpoint_path, '{model}-{epoch}-{type}.pth')
-
-    device = torch.device(config.device)
-
-    # Create dataloaders
-    shuffle = True
-    if config.num_classes == 10:
-        transform = [CIFAR_10_TRANSFORM, CIFAR_10_TRANSFORM]
-    else:
-        transform = [CIFAR_100_TRANSFORM_TRAIN, CIFAR_100_TRANSFORM_TEST]
-
-    train_loader = load_data(config.batch_size, transform[0], True, 2, config.data_dir, 
-                                config.dataset_name, train=True, name=config.dataset)
-    test_loader = load_data(config.batch_size, transform[1], False, 2, config.data_dir, 
-                                config.dataset_name, train=False, name=config.dataset)
-
-    
-    # Get sample and total pixels 
-    sample_img = next(iter(train_loader))[0]
-    total_pixels = sample_img.shape[2] * sample_img.shape[3]
-
-    # Calculate k's based on percentages and total pixels
-    percentages = [0.1, 0.3, 0.5, 0.7, 0.9]
-    Ks = [round((k * total_pixels)) for k in percentages]
-
-    # Load or train model
-    model = vgg11(pretrained=False, device=device, im_size = sample_img.shape, num_classes=config.num_classes, class_size=512).to(device)
-    if os.path.exists('saved-models/VGG-11-71-best.pth'):
-        print("The model will now be loaded.")
-        print(True if device == 'cuda' else False)
-        model.load_state_dict(torch.load('saved-models/VGG-11-71-best.pth', map_location=torch.device('cpu')), True if device == 'cuda' else False)
-    else:
-        # Train model on cifar-100
-        print("The model will now be trained.")
-        criterion = nn.CrossEntropyLoss()
-        optimizer = optim.SGD(model.parameters(), lr=config.learning_rate, momentum=0.9, nesterov=True)
-        scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 120, 160, 200], gamma=0.2)
-
-        train(model, criterion, optimizer, scheduler, train_loader, test_loader, device,
-            config.checkpoint_path, config.model_name, config.epochs, config.save_epochs)
-
-    # Initialize FullGrad objects
-    fullgrad = FullGrad(model, im_size = sample_img.shape, device = device)
-
-    # Create ROAR images
-    print("The adjusted data will now be created.")
-    get_salience_based_adjusted_data(train_loader, Ks, percentages, dataset = "train")
-    get_salience_based_adjusted_data(test_loader, Ks, percentages, dataset = "test")
+        create_adjusted_images_and_save(idx, data, salience_map, target, ks, percentages, num_classes, dataset, method)

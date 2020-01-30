@@ -9,7 +9,7 @@ it allows for certain flags to be set and instantly run the classifier
 and save it
 """
 import torch
-from torchvision import datasets, transforms, utils
+from torchvision import datasets, utils
 import torch.nn as nn
 import torch.optim as optim
 import os
@@ -20,29 +20,24 @@ from utils import prepare_data, load_data, CIFAR_100_TRANSFORM_TRAIN, CIFAR_100_
 from classifier import train, eval
 from saliency.fullgrad import FullGrad
 from saliency.simple_fullgrad import SimpleFullGrad
-from misc_functions import *
 import csv
+from misc_functions import save_saliency_map
 
-csv_dir = 'dataset/PPB-2017/PPB-2017-metadata.csv'
-metadata = []
-with open(csv_dir, newline='') as csvfile:
-    spamreader = csv.reader(csvfile, delimiter=',', quotechar='|')
-    for row in spamreader:
-        metadata.append(row)
-
-
-def etnic_acc(dataloader, model, optimizer, criterion, device, train=True):
+def etnic_acc(dataloader, model, optimizer, criterion, device, csv_dir, train=True):
     '''
         Training and evaluation are put together to avoid duplicated code.
     '''
     model.eval()
+    metadata = []
+    with open(csv_dir, newline='') as csvfile:
+        spamreader = csv.reader(csvfile, delimiter=',', quotechar='|')
+        for row in spamreader:
+            metadata.append(row)
 
     total = {'Male': {'lighter' : 0, 'darker': 0}, 'Female':  {'lighter' : 0, 'darker': 0} }
     correct = {'Male': {'lighter' : 0, 'darker': 0}, 'Female':  {'lighter' : 0, 'darker': 0} }
 
     image_index = 1
-
-    losses = 0
     for batch_idx, (data, target) in enumerate(dataloader):
         # print(batch_idx)
         data, target = data.to(device), target.to(device)
@@ -72,85 +67,33 @@ def compute_save_fullgrad_saliency(sample_loader, unnormalize, save_path, device
 
         # Compute saliency maps for the input data
         # _, cam, _ = fullgrad.saliency(data)
-        cam_simple = simple_fullgrad.saliency(data)
+        cam_simple, _ = simple_fullgrad.saliency(data)
         # Save saliency maps
         for i in range(data.size(0)):
-            filename = save_path + str( (batch_idx+1) * (i+1)) 
-            filename_simple = filename + '_simple'
-
+            filename = save_path + str( (batch_idx+1) * (i+1))
+            print(i)
             image = unnormalize(data[i,:,:,:].cpu())
             save_saliency_map(image, cam_simple[i,:,:,:], filename + '.jpg')
-           
-if __name__ == "__main__":
-    PATH = os.path.dirname(os.path.abspath(__file__)) + '/'
-    save_path = PATH + 'results/'
-    # Parse training configuration
-    parser = argparse.ArgumentParser()
 
-    # Model params
-    parser.add_argument('--model_name', type=str, default="RESNET50-2", help="Name of the model when saved")
-    parser.add_argument('--num_classes', type=int, default=11, help='Dimensionality of output sequence')
-    parser.add_argument('--batch_size', type=int, default=128, help='Number of examples to process in a batch')
-    parser.add_argument('--epochs', type=int, default=200, help='Number of epochs until break')
-    parser.add_argument('--load_model', type=str, default='', help='Give location of weights to load model')
-    parser.add_argument('--save_epochs', type=int, default=1, help="save model after epochs")
-    parser.add_argument('--learning_rate', type=float, default=0.1, help='Learning rate')
-    parser.add_argument('--device', type=str, default="cuda:0", help="Training device 'cpu' or 'cuda'")
-    parser.add_argument('--save_model', type=bool, default=True, help="If set to false the model wont be saved.")
-    parser.add_argument('--data_dir', type=str, default=PATH + 'dataset', help="data dir for dataloader")
-    parser.add_argument('--dataset_name', type=str, default='/cifar10-imagefolder', help= "Name of dataset contained in the data_dir")
-    parser.add_argument('--checkpoint_path', type=str, default=PATH + 'saved-models/Resnet/', help="model saving dir.")
-    parser.add_argument('--dataset', type=str, default='cifar10', help="Select cifar10 or cifar100 dataset")
-    parser.add_argument('--save_saliency', type=bool, default=False, help="Set true if you want to save salienct")
+def sensitive_transparency(model_config, data_config):
+    saliency_dir = data_config.path + 'dataset/saliency/'
+    dataset = datasets.ImageFolder(root=saliency_dir, transform=data_config.transform)
+    saliencyloader = torch.utils.data.DataLoader(dataset, batch_size=1, num_workers=2)
 
-    config = parser.parse_args()
+    if not os.path.exists(model_config.model_dir):
+        train(model_config, data_config)
+    else:    
+        model_config.load_model()
 
-    if not os.path.exists(config.checkpoint_path):
-        os.makedirs(config.checkpoint_path)
-    config.checkpoint_path = os.path.join(config.checkpoint_path, '{model}-{epoch}-{type}.pth')
+    simple_fullgrad = SimpleFullGrad(model_config.model)
 
-
-    device = torch.device(config.device)
-    model = resnet50(num_classes=config.num_classes).to(device)
-
-
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(model.parameters(), lr=config.learning_rate, momentum=0.9, nesterov=True, weight_decay=5e-4)
-    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 120, 160, 200], gamma=0.2)
-
-    num_workers = 1
-    test_dir = PATH + 'dataset/extra_experiment/test'
-    train_dir = PATH + 'dataset/cifar10-imagefolder/train'
-
-    transform = transforms.Compose(
-        [transforms.Resize((32,32)),
-        transforms.ToTensor(),
-        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-
-    unnormalize = NormalizeInverse(mean = [0.5, 0.5, 0.5],
-                        std = [0.5, 0.5, 0.5])
-
-
-    dataset = datasets.ImageFolder(root=train_dir, transform=transform)
-    trainloader = torch.utils.data.DataLoader(dataset, batch_size=config.batch_size, num_workers=num_workers, shuffle=True)
-
-    dataset = datasets.ImageFolder(root=test_dir, transform=transform)
-    testloader = torch.utils.data.DataLoader(dataset, batch_size=config.batch_size, num_workers=num_workers)
-
-    dataset = datasets.ImageFolder(root=PATH + 'dataset/saliency/', transform=transform)
-    saliencyloader = torch.utils.data.DataLoader(dataset, batch_size=1, num_workers=num_workers)
-
-    if config.load_model:
-        simple_fullgrad = SimpleFullGrad(model)
-        model.load_state_dict(torch.load(config.load_model), True if device == 'cuda' else False)
+    if os.path.exists(saliency_dir):
+        compute_save_fullgrad_saliency(saliencyloader, data_config.unnormalize, data_config.save_path, model_config.device, simple_fullgrad)
 
     else:
-        train(model, criterion, optimizer, scheduler, trainloader, testloader, device, config.checkpoint_path, config.model_name, config.save_epochs, config.epochs)
+        print("Add pictures to: " + saliency_dir)
+        print("Saliency maps will be shown")
+        
+    csv_dir = data_config.data_dir + '/' + data_config.dataset_name + '/test/PPB-2017-metadata.csv'
 
-
-
-    if config.save_saliency:
-        compute_save_fullgrad_saliency(saliencyloader, unnormalize, save_path, device, simple_fullgrad)
-    
-
-    etnic_acc(testloader, model, optimizer, criterion, device)
+    etnic_acc(data_config.testloader, model_config.model, model_config.optimizer, model_config.criterion, model_config.device, csv_dir)
