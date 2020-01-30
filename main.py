@@ -36,7 +36,7 @@ if __name__== "__main__":
     # Model params
     parser.add_argument('--experiment', type=str, default='roar', help="Select roar, pixel_perturbation or extra experiment")
     parser.add_argument('--device', type=str, default='cuda:0', help="Select device")
-    parser.add_argument('--seed', type=int, default=0, help="Set seed"))
+    parser.add_argument('--seed', type=int, default=0, help="Set seed")
     config = parser.parse_args()
     main(config)
 
