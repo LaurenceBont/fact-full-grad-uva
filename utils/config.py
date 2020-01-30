@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from utils import CIFAR_10_TRANSFORM, load_data
+from utils import CIFAR_10_TRANSFORM, load_data, UNNORMALIZE
 from models.resnet import resnet50
 from models.vgg import vgg11
 
@@ -42,7 +42,6 @@ class ModelConfiguration:
 
     def load_model(self):
         if os.path.exists(self.model_dir):
-            print(self.model_dir, self.num_classes)
             self.model.load_state_dict(torch.load(self.model_dir), True if self.device == 'cuda:0' else False)
 
     def save_model(self):
@@ -62,7 +61,9 @@ class DataLoaderConfiguration:
         self.dataset = dataset
         self.path = path
 
+        self.save_path = 'results/'
         self.transform = transform
+        self.unnormalize = UNNORMALIZE
 
         self.trainloader = load_data(batch_size, transform,
                                 True, 2, self.data_dir, self.dataset_name, train=True, name=self.dataset)
