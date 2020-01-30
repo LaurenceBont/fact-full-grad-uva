@@ -25,7 +25,7 @@ import torch.nn.functional as F
 PATH = os.path.dirname(os.path.abspath(__file__)) + '/'
 dataset = PATH + 'dataset_copy2/'
 
-batch_size = 100
+batch_size = 101
 total_pixels = 224*224
 
 cuda = torch.cuda.is_available()
@@ -104,7 +104,7 @@ def compute_saliency_and_save(k, method):
     former_outputs, new_images_to_forward, image_counter = [], [], 0
 
     image_counter = 0
-    max_iter = 101
+    max_iter = 100
     for batch_idx, (data, target) in enumerate(sample_loader):
         data, target = data.to(device).requires_grad_(), target.to(device)
         if method == "inputgrad" or method == "random" or method == "fullgrad":
@@ -191,7 +191,7 @@ def obtain_percentages(method):
         Returns a list of percentages that will later be used to decide how many pixels to remove.
     """
     if method == "fullgrad" or method == "random" or method == "inputgrad":
-       percentages = [0.001, 0.005,0.01,0.03,0.05,0.07,0.1]
+        percentages = [0.001, 0.005,0.01,0.03,0.05,0.07,0.1]
         #percentages = [0.01,0.05,0.1]
         #percentages = [0.001, 0.005]
         return percentages, [round(total_pixels - (k * total_pixels)) for k in percentages]
@@ -216,15 +216,15 @@ def pixel_pertubation(experiment):
         result_fullgrad, afoc_fullgrad = compute_pertubation(k,experiment,method = "fullgrad")
         #result_simple_FG, afoc_simplegrad = compute_pertubation(k, experiment, method = "simplegrad")
         
-        results_R.append(result_random)
+        #results_R.append(result_random)
         results_IG.append(result_inputgrad)
-        results_FG.append(result_fullgrad)
+        #results_FG.append(result_fullgrad)
         #results_simple_FG.append(result_simple_FG)
 
-        results_STD_R.append(np.std(afoc_random))
+        #results_STD_R.append(np.std(afoc_random))
         results_STD_IG.append(np.std(afoc_inputgrad))
         #results_STD_simple_FG.append(np.std(afoc_simplegrad))
-        results_STD_FG.append(np.std(afoc_fullgrad))
+        #results_STD_FG.append(np.std(afoc_fullgrad))
 
 
     print(f'percentages: {percentages}')
