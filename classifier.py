@@ -71,7 +71,7 @@ def train(model_config, loader_config):
         accuracy = parse_epoch(loader_config.testloader, model_config.model, model_config.optimizer, model_config.criterion, model_config.device, train=False)
         
         # if accuracy > best_acc:
-        model_config.save_model()
+        model_config.save_model(epoch)
         best_acc = accuracy  
 
         # if train_acc > 0.9:

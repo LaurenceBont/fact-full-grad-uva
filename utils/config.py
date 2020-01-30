@@ -24,7 +24,7 @@ class ModelConfiguration:
         self.learning_rate = learning_rate
         self.device = torch.device(device)
         self.criterion = nn.CrossEntropyLoss()
-        self.model_dir = checkpoint_path + model_name + '-' + experiment + '.pth'
+        self.model_dir = checkpoint_path + model_name + '-' + experiment + '-'
         self.set_model(model_name)
         self.load_model()
         self.set_optimizer()
@@ -44,10 +44,10 @@ class ModelConfiguration:
         if os.path.exists(self.model_dir):
             self.model.load_state_dict(torch.load(self.model_dir), True if self.device == 'cuda:0' else False)
 
-    def save_model(self):
+    def save_model(self, epoch):
         if not os.path.exists(self.checkpoint_path):
             os.makedirs(self.checkpoint_path)
-        torch.save(self.model.state_dict(), self.model_dir)
+        torch.save(self.model.state_dict(), self.model_dir + str(epoch) + '.pth')
          
 
 
