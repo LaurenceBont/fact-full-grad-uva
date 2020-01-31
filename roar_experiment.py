@@ -14,7 +14,7 @@ def experiment(model_config, loader_config, percentages = [0.1, 0.3, 0.5, 0.7, 0
         train(model_config, loader_config)
         
 
-    # If adjusted data is not created, create it. 
+    If adjusted data is not created, create it. 
     if not os.path.exists(loader_config.path + 'dataset/roar_full_grad/'):
         print("The data for full grad is not found in dataset/roar_full_grad")
         print("Creating it can take a long time, please abort this run and download it from github")
@@ -54,6 +54,7 @@ def perform_experiment(percentages, model_config, loader_config, method):
         model_config.model_dir = f'saved-models/VGG-11-ROAR-{method}-{percentage*100}.pth'
 
         if not os.path.exists(model_config.model_dir):
+            print(f"Model for {percentage*100}% will be trained now.")
             train(model_config, percentage_loader)
         else:
             model_config.load_model()

@@ -52,7 +52,7 @@ def create_data_dirs(percentages, num_classes, salience_method):
         directory = f'dataset/roar_{salience_method}/cifar-{num_classes}-{percentage*100}%-removed' 
         create_imagefolder_dir(directory, num_classes)
 
-def create_adjusted_images_and_save(idx, data, cam, target, ks, percentages, num_classes, dataset, method, approach = "zero"):
+def create_adjusted_images_and_save(idx, data, sal_map, target, ks, percentages, num_classes, dataset, method, approach = "zero"):
     """
         Creates adjusted images based on different K's, and saves them.
         
@@ -62,17 +62,16 @@ def create_adjusted_images_and_save(idx, data, cam, target, ks, percentages, num
                       directories.
     """
 
-    # If random is not chosen salience map needs to be squeezed
-    if cam is not None:
-        sal_map = cam.squeeze()
+    
 
+    # Get unnormalized image and pre-process salience map
+    image = UNNORMALIZE(data.squeeze())   
+    sal_map = sal_map.squeeze().cpu().detach().numpy()
+    
     for k, percentage in zip(ks, percentages): 
 
-        # Get unnormalized image
-        image = UNNORMALIZE(data.squeeze())
-
         # Get k indices and replace within image
-        indices = return_k_index_argsort(sal_map.cpu().detach().numpy(), k, method)
+        indices = return_k_index_argsort(sal_map, k, method)
         new_image = replace_pixels(image, indices, approach = approach)
 
         # Save adjusted images
@@ -108,7 +107,7 @@ def create_salience_based_adjusted_data(sample_loader, full_grad, ks, percentage
             salience_map, _, _ = full_grad.saliency(data)
 
         elif salience_method == "random":
-            salience_map = None
-            
+            salience_map = torch.randn(1, 1, 32, 32)
+  
         # Find most important pixels, replace and save adjusted image.
         create_adjusted_images_and_save(idx, data, salience_map, target, ks, percentages, num_classes, dataset, salience_method)
