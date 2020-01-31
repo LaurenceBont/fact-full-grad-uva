@@ -11,7 +11,8 @@ from saliency.fullgrad import FullGrad
 def experiment(model_config, loader_config, percentages = [0.1, 0.3, 0.5, 0.7, 0.9]):
     if not os.path.exists(model_config.model_dir):
         train(model_config, loader_config)
-        # Load model
+
+    # Load model
     # model_config.load_model()
     # fullgrad = FullGrad(model_config.model, im_size=loader_config.image_shape, device=model_config.device)
 
@@ -19,17 +20,17 @@ def experiment(model_config, loader_config, percentages = [0.1, 0.3, 0.5, 0.7, 0
     if not os.path.exists(loader_config.path + 'dataset/roar_full_grad/'):
         print("The data for full grad is not found in dataset/roar_full_grad")
         print("Creating it can take a long time, please abort this run and download it from github")
-        create_data(percentages, loader_config, salience_method="full_grad")
+        create_data(percentages, model_config, loader_config, salience_method="full_grad")
 
     if not os.path.exists(loader_config.path + 'dataset/roar_input_grad/'):
         print("The data for input grad is not found in dataset/roar_input_grad")
         print("Creating it can take a long time, please abort this run and download it from github")
-        create_data(percentages, loader_config, salience_method="input_grad")
+        create_data(percentages, model_config, loader_config, salience_method="input_grad")
 
     if not os.path.exists(loader_config.path + 'dataset/roar_random/'):
         print("The data for random is not found in dataset/roar_random")
         print("Creating it can take a long time, please abort this run and download it from github")
-        create_data(percentages, loader_config, salience_method="random")
+        create_data(percentages, model_config, loader_config, salience_method="random")
 
     # Train model based on certrain adjusted data
     accuracy_list = []

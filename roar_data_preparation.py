@@ -21,18 +21,18 @@ from utils import (UNNORMALIZE, create_imagefolder_dir, load_data,
                    save_imagefolder_image)
 
 
-def create_data(percentages, cfg, salience_method="full_grad"):
+def create_data(percentages, model_cfg, loader_cfg, salience_method="full_grad"):
     # Create train and test dataloader
-    train_loader = load_data(1, cfg.transform, False, 1, cfg.data_dir, cfg.dataset, train=True, name=cfg.dataset)
-    test_loader = load_data(1, cfg.transform, False, 1, cfg.data_dir, cfg.dataset, train=False, name=cfg.dataset)
+    train_loader = load_data(1, loader_cfg.transform, False, 1, loader_cfg.data_dir, loader_cfg.dataset, train=True, name=loader_cfg.dataset)
+    test_loader = load_data(1, loader_cfg.transform, False, 1, loader_cfg.data_dir, loader_cfg.dataset, train=False, name=loader_cfg.dataset)
     
     # number of pixels in k percent of the image
-    num_pixel_list = [round((percentage * cfg.image_size)) for percentage in percentages]
+    num_pixel_list = [round((percentage * loader_cfg.image_size)) for percentage in percentages]
 
 
     # Get adjusted data
-    create_salience_based_adjusted_data(train_loader, num_pixel_list, percentages, salience_method, dataset="train")
-    create_salience_based_adjusted_data(test_loader, num_pixel_list, percentages, salience_method, dataset="test")
+    create_salience_based_adjusted_data(train_loader, num_pixel_list, percentages, model_cfg.device, salience_method, dataset="train")
+    create_salience_based_adjusted_data(test_loader, num_pixel_list, percentages, model_cfg.device, salience_method, dataset="test")
 
 def create_data_dirs(percentages, num_classes, salience_method):
     """
@@ -73,7 +73,7 @@ def create_adjusted_images_and_save(idx, data, cam, target, ks, percentages, num
         save_imagefolder_image(data_dir, target, new_image, idx, dataset)
 
 
-def create_salience_based_adjusted_data(sample_loader, ks, percentages, salience_method="full_grad", num_classes=10, dataset="train", method="roar"):
+def create_salience_based_adjusted_data(sample_loader, ks, percentages, device, salience_method="full_grad", num_classes=10, dataset="train", method="roar"):
     """
         Creates adjusted images based on different K's, and saves them.
         
@@ -89,7 +89,6 @@ def create_salience_based_adjusted_data(sample_loader, ks, percentages, salience
         create_data_dirs(percentages, num_classes, salience_method)
     else:
         print(f"{dataset}set already created!")
-
 
     # Loops over sample loader to creates per sample every adjusted image, and saves them.
     for idx, (data, target) in enumerate(sample_loader):
