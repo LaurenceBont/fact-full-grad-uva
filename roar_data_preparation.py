@@ -14,6 +14,7 @@ from torchvision import datasets, transforms, utils
 
 from classifier import train
 # Import saliency methods and models
+from models.vgg import *
 from saliency.fullgrad import FullGrad
 from saliency.simple_fullgrad import SimpleFullGrad
 from utils import (UNNORMALIZE, create_imagefolder_dir, load_data,
@@ -26,13 +27,16 @@ def create_data(percentages, model_cfg, loader_cfg, salience_method="full_grad")
     train_loader = load_data(1, loader_cfg.transform, False, 1, loader_cfg.data_dir, loader_cfg.dataset, train=True, name=loader_cfg.dataset)
     test_loader = load_data(1, loader_cfg.transform, False, 1, loader_cfg.data_dir, loader_cfg.dataset, train=False, name=loader_cfg.dataset)
     
-    # number of pixels in k percent of the image
+    # Number of pixels in k percent of the image
     num_pixel_list = [round((percentage * loader_cfg.image_size)) for percentage in percentages]
 
+    # Fetch pretrained model on cifar dataset and create full grad object
+    model_cfg.load_model()
+    full_grad = FullGrad(model_cfg.model, im_size=(1,3,32,32), device=model_cfg.device)
 
     # Get adjusted data
-    create_salience_based_adjusted_data(train_loader, num_pixel_list, percentages, model_cfg.device, salience_method, dataset="train")
-    create_salience_based_adjusted_data(test_loader, num_pixel_list, percentages, model_cfg.device, salience_method, dataset="test")
+    create_salience_based_adjusted_data(train_loader, full_grad, num_pixel_list, percentages, model_cfg.device, salience_method, dataset="train")
+    create_salience_based_adjusted_data(test_loader, full_grad, num_pixel_list, percentages, model_cfg.device, salience_method, dataset="test")
 
 def create_data_dirs(percentages, num_classes, salience_method):
     """
@@ -57,7 +61,10 @@ def create_adjusted_images_and_save(idx, data, cam, target, ks, percentages, num
         percentages : the percentages of pixels which are adjusted, used to save images in correct
                       directories.
     """
-    sal_map = cam.squeeze()
+
+    # If random is not chosen salience map needs to be squeezed
+    if cam is not None:
+        sal_map = cam.squeeze()
 
     for k, percentage in zip(ks, percentages): 
 
@@ -73,7 +80,7 @@ def create_adjusted_images_and_save(idx, data, cam, target, ks, percentages, num
         save_imagefolder_image(data_dir, target, new_image, idx, dataset)
 
 
-def create_salience_based_adjusted_data(sample_loader, ks, percentages, device, salience_method="full_grad", num_classes=10, dataset="train", method="roar"):
+def create_salience_based_adjusted_data(sample_loader, full_grad, ks, percentages, device, salience_method="full_grad", num_classes=10, dataset="train"):
     """
         Creates adjusted images based on different K's, and saves them.
         
@@ -95,14 +102,13 @@ def create_salience_based_adjusted_data(sample_loader, ks, percentages, device, 
         data, target = data.to(device).requires_grad_(), target.to(device)
 
         if salience_method == "full_grad":
-            _, salience_map, _ = fullgrad.saliency(data)
+            _, salience_map, _ = full_grad.saliency(data)
 
         elif salience_method == "input_grad":
-            salience_map, _, _ = fullgrad.saliency(data)
+            salience_map, _, _ = full_grad.saliency(data)
 
         elif salience_method == "random":
             salience_map = None
-            method = "random"
             
         # Find most important pixels, replace and save adjusted image.
-        create_adjusted_images_and_save(idx, data, salience_map, target, ks, percentages, num_classes, dataset, method)
+        create_adjusted_images_and_save(idx, data, salience_map, target, ks, percentages, num_classes, dataset, salience_method)

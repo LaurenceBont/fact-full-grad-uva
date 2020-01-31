@@ -10,11 +10,9 @@ from saliency.fullgrad import FullGrad
 
 def experiment(model_config, loader_config, percentages = [0.1, 0.3, 0.5, 0.7, 0.9]):
     if not os.path.exists(model_config.model_dir):
+        print("Cifar-10 model will be trained which is used for data preparation.")
         train(model_config, loader_config)
-
-    # Load model
-    # model_config.load_model()
-    # fullgrad = FullGrad(model_config.model, im_size=loader_config.image_shape, device=model_config.device)
+        
 
     # If adjusted data is not created, create it. 
     if not os.path.exists(loader_config.path + 'dataset/roar_full_grad/'):

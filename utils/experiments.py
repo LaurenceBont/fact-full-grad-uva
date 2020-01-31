@@ -3,7 +3,7 @@ import numpy as np
 
 def return_k_index_argsort(salience_map, k, method):
     idx = np.argsort(salience_map.ravel())
-    if method == "roar":
+    if method == "full_grad" or method == "input_grad":
         return np.column_stack(np.unravel_index(idx[:-k-1:-1], salience_map.shape))
     elif method == "pp":
         return np.column_stack(np.unravel_index(idx[::-1][:k], salience_map.shape))
