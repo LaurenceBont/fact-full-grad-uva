@@ -74,8 +74,8 @@ def train(model_config, loader_config):
         model_config.save_model()
         best_acc = accuracy  
 
-        # if train_acc > 0.9:
-        #     break
+        if train_acc > 0.9:
+            break
             
 def eval(model, criterion, optimizer, trainloader, testloader, device,
             load_model, save_epochs):
