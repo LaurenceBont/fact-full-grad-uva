@@ -1,12 +1,18 @@
 # Fairness, Accountability, Confidentiality and Transparency in AI
  This projects 
+
+## People who worked on this project:
+Daan Le - 11329866 - daan_le@hotmail.com\
+Mathieu Bartels - 11329521 - mathieubartels@gmail.com\
+David Wessels - 11323272 - davidwessels15@gmail.com\
+Laurence Bont - 11198788 - laurencebont@gmail.com
 ## Dependencies?
 To get all dependencies for this paper use pipenv or conda
 
 ### pipenv:
 `pip install pipenv`\
 `pipenv shell`\
-`pipenv sync`\
+`pipenv sync`
 
 Now al packages needed for this project are installed!
 
