@@ -131,8 +131,7 @@ def compute_saliency_and_save(k, method):
 
             curr_perc = 100 - round(k/total_pixels,2)*100
             print(f"Current image counter ID: {image_counter}")
-            #utils.save_image(new_image_to_save, f'pixels_removed/temp_show/{method}_{curr_perc}k%_img={image_counter}.png')
-
+            
             image_counter += 1
         if image_counter > max_iter:
             break
@@ -216,15 +215,15 @@ def pixel_pertubation(experiment):
         result_fullgrad, afoc_fullgrad = compute_pertubation(k,experiment,method = "fullgrad")
         #result_simple_FG, afoc_simplegrad = compute_pertubation(k, experiment, method = "simplegrad")
         
-        #results_R.append(result_random)
+        results_R.append(result_random)
         results_IG.append(result_inputgrad)
-        #results_FG.append(result_fullgrad)
+        results_FG.append(result_fullgrad)
         #results_simple_FG.append(result_simple_FG)
 
-        #results_STD_R.append(np.std(afoc_random))
+        results_STD_R.append(np.std(afoc_random))
         results_STD_IG.append(np.std(afoc_inputgrad))
         #results_STD_simple_FG.append(np.std(afoc_simplegrad))
-        #results_STD_FG.append(np.std(afoc_fullgrad))
+        results_STD_FG.append(np.std(afoc_fullgrad))
 
 
     print(f'percentages: {percentages}')
