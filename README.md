@@ -1,6 +1,4 @@
 # Fairness, Accountability, Confidentiality and Transparency in AI
- This projects 
-
 ## People who worked on this project:
 Daan Le - 11329866 - daan_le@hotmail.com\
 Mathieu Bartels - 11329521 - mathieubartels@gmail.com\
